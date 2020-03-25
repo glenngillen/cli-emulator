@@ -8,7 +8,7 @@ resource "aws_apigatewayv2_api" "cli_websocket_signalling_server" {
   route_selection_expression = "$request.body.action"
 }
 
-resource "aws_apigatewayv2_deployment" "Deployment" {
+resource "null_resource" "aws_apigatewayv2_deployment-Deployment" {
    api_id = aws_apigatewayv2_api.cli_websocket_signalling_server.id
 
     depends_on = [
@@ -18,7 +18,7 @@ resource "aws_apigatewayv2_deployment" "Deployment" {
    ]
  }
 
- resource "aws_apigatewayv2_stage" "Stage" {
+ resource "null_resource" "aws_apigatewayv2_stage-Stage" {
    api_id        = aws_apigatewayv2_api.cli_websocket_signalling_server.id
    name          = "Prod"
    description   = "Prod Stage"
@@ -70,7 +70,7 @@ resource "aws_apigatewayv2_deployment" "Deployment" {
  EOT
  }
 
- resource "aws_apigatewayv2_integration" "ConnectIntegrat" {
+ resource "null_resource" "aws_apigatewayv2_integration-ConnectIntegrat" {
    api_id             = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    integration_type   = "AWS_PROXY"
    description        = "Connect Integration"
@@ -78,14 +78,14 @@ resource "aws_apigatewayv2_deployment" "Deployment" {
    integration_method = "POST"
  }
 
- resource "aws_apigatewayv2_route" "ConnectRoute" {
+ resource "null_resource" "aws_apigatewayv2_route-ConnectRoute" {
    api_id         = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    route_key      = "$connect"
    operation_name = "ConnectRoute"
    target         = "integrations/${aws_apigatewayv2_integration.ConnectIntegrat.id}"
  }
 
- resource "aws_apigatewayv2_integration" "DisconnectInteg" {
+ resource "null_resource" "aws_apigatewayv2_integration-DisconnectInteg" {
    api_id             = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    integration_type   = "AWS_PROXY"
    description        = "Disconnect Integration"
@@ -93,14 +93,14 @@ resource "aws_apigatewayv2_deployment" "Deployment" {
    integration_method = "POST"
  }
 
- resource "aws_apigatewayv2_route" "DisconnectRoute" {
+ resource "null_resource" "aws_apigatewayv2_route-DisconnectRoute" {
    api_id         = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    route_key      = "$disconnect"
    operation_name = "DisconnectRoute"
    target         = "integrations/${aws_apigatewayv2_integration.DisconnectInteg.id}"
  }
 
- resource "aws_apigatewayv2_integration" "SendInteg" {
+ resource "null_resource" "aws_apigatewayv2_integration-SendInteg" {
    api_id             = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    integration_type   = "AWS_PROXY"
    description        = "Send Integration"
@@ -108,7 +108,7 @@ resource "aws_apigatewayv2_deployment" "Deployment" {
    integration_method = "POST"
  }
 
-  resource "aws_apigatewayv2_route" "SendRoute" {
+  resource "null_resource" "aws_apigatewayv2_route-SendRoute" {
    api_id         = "${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    route_key      = "sendmessage"
    operation_name = "SendRoute"
