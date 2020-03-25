@@ -3,7 +3,7 @@ var peers: Array<any>
  
 class WebRTCHost {
   start(host: boolean, signal?: any) {
-    let url = "https://somewhere.com/"
+    let url = "wss://6r7dk8n979.execute-api.us-east-1.amazonaws.com/"
     let webSocket = new WebSocket(url)
     let opts;
     if (host) {
