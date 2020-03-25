@@ -4,5 +4,5 @@ resource "aws_apigatewayv2_api" "cli_websocket_signalling_server" {
 }
 
 output "api_url" {
-  value = aws_apigatewayv2_api.cli_websocket_signalling_server
+  value = aws_apigatewayv2_api.cli_websocket_signalling_server.api_endpoint
 }
