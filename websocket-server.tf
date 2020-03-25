@@ -15,11 +15,11 @@ resource "null_resource" "aws_apigatewayv2_deployment-Deployment" {
      command = "aws apigatewayv2 create-deployment --api-id=${aws_apigatewayv2_api.cli_websocket_signalling_server.id}"
    }
 
-    depends_on = [
-     aws_apigatewayv2_route-ConnectRoute,
-     aws_apigatewayv2_route-DisconnectRoute,
-     aws_apigatewayv2_route-SendRoute
-   ]
+   #depends_on = [
+   #  aws_apigatewayv2_route-ConnectRoute,
+   #  aws_apigatewayv2_route-DisconnectRoute,
+   #  aws_apigatewayv2_route-SendRoute
+   #]
  }
 
 # resource "null_resource" "aws_apigatewayv2_stage-Stage" {
