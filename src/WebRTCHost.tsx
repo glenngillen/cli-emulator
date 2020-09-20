@@ -1,10 +1,23 @@
 import SimplePeer from "simple-peer";
+import Pusher from 'pusher-js';
+import * as PusherTypes from 'pusher-js';
 var peers: Array<any>
- 
+
+const pusher = new Pusher('a39e2734ba451727d4f6', {
+  cluster: 'mt1',
+});
+
+class RealtimeClient {
+  client = pusher
+  channel = pusher.subscribe('terminal')
+  send(message) {
+    this.channel.trigger('input', message)
+  }
+}
 class WebRTCHost {
   start(host: boolean, signal?: any) {
-    let url = "wss://6r7dk8n979.execute-api.us-east-1.amazonaws.com/"
-    let webSocket = new WebSocket(url)
+    //let url = "ws://ws-mt1.pusher.com/app/a39e2734ba451727d4f6"
+    //let webSocket = new WebSocket(url)
     let opts;
     if (host) {
       opts = { initiator: true }
@@ -19,9 +32,7 @@ class WebRTCHost {
     rtc.on('error', function(data) {
       console.log('WebRTC Error', data)
     })
-    webSocket.onmessage = (event) => {
-      console.log('WS', event.data)
-    }
+    var channel = pusher.subscribe('signals')
 
     if (host) {
       rtc.on('data', function(msg) {
@@ -36,7 +47,11 @@ class WebRTCHost {
       });
     } else {
       rtc.on('signal', (data:any) => {
-        webSocket.send(JSON.stringify(data))
+        
+        console.log(data)
+        channel.trigger('client-signals', data)
+
+        //webSocket.send(JSON.stringify(data))
         console.log('SIGNAL', JSON.stringify(data))
       })
       if (signal) rtc.signal(signal)
@@ -45,4 +60,5 @@ class WebRTCHost {
     return rtc
   }
 }
+export { RealtimeClient }
 export default WebRTCHost

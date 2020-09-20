@@ -1,10 +1,49 @@
 import React from 'react'
-import WebRTCHost from "./WebRTCHost";
-import './terminal.scss';
+import { RealtimeClient } from "./WebRTCHost";
+import styled from "styled-components";
+import { theme } from "./Theme";
 
-interface Props {
-  peer?: string,
-}
+const InputArea = styled.div`
+  height: 100%;
+  padding: 20px;
+  white-space: pre;
+  p {
+    line-height: 1.3em;
+  }
+  p.error {
+    color: ${theme['color-error']};
+  }
+  p.suggestion {
+    color: ${theme['color-suggestion']};
+  }
+  p.success {
+    color: ${theme['color-success']};
+  }
+`
+const Prompt = styled.span`
+  color: $terminal-color-prompt;
+  font-family: $font-family-fixed;
+  font-size: $font-size;
+  margin-right: 0.65em;
+`
+
+const Input = styled.input`
+  font-family: $font-family-fixed;
+  font-size: $font-size;
+  border: none;
+  padding: 0;
+  margin: 0;
+  height: 1.2em;
+  line-height: 1.2em;
+  background: #2b303b;
+  color: #ebcb8b;
+  width: 80%;
+
+  &:focus {
+    outline: none;
+  }
+`
+
 interface State {
   client: any,
   rtc?: any,
@@ -16,20 +55,13 @@ interface State {
   waiting: boolean,
   inlineInput: boolean
 }
-class Terminal extends React.Component<Props, State> {
+class Terminal extends React.Component<{}, State> {
   term: any
   constructor(props: any) {
     super(props)
-    let client = new WebRTCHost();
-    let rtc:any;
-    if (this.props.peer) {
-      let signal = JSON.parse(atob(decodeURIComponent(this.props.peer)))
-      console.log(signal)
-      rtc = client.start(false, signal)
-    }
+    let client = new RealtimeClient();
     this.state = {
       client: client,
-      rtc: rtc,
       commands: {},
       history: [],
       cmdHistory: [],
@@ -228,19 +260,19 @@ class Terminal extends React.Component<Props, State> {
       }, this);
       if (this.state.inlineInput == true || this.state.waiting) {
           return (
-            <div className='input-area' onClick={this.handleClick}>
+            <InputArea onClick={this.handleClick}>
               {output}
-            </div>
+            </InputArea>
           )
       } else {
           return (
-            <div className='input-area' onClick={this.handleClick}>
+            <InputArea onClick={this.handleClick}>
               {output}
               <p>
-                <span className="prompt">{this.state.prompt}</span>
-                <input type="text" onKeyDown={this.handleKey} onKeyPress={this.handleInput} ref={(ref) => this.term = ref } className="term"/>
+                <Prompt>{this.state.prompt}</Prompt>
+                <Input type="text" onKeyDown={this.handleKey} onKeyPress={this.handleInput} ref={(ref) => this.term = ref }/>
               </p>
-            </div>
+            </InputArea>
           )
       }
   }
