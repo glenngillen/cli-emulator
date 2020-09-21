@@ -23,9 +23,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     let cmds: Array<MatchedCommand> = []
     if (storedCmds) {
       let data = JSON.parse(storedCmds)
-      console.log(data)
       data.forEach(element => {
-        console.log(element)
         cmds.push({cmd: element.cmd, output: element.output})
       })
     }

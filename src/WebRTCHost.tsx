@@ -3,15 +3,61 @@ import Pusher from 'pusher-js';
 import * as PusherTypes from 'pusher-js';
 var peers: Array<any>
 
-const pusher = new Pusher('a39e2734ba451727d4f6', {
+const pusher = new Pusher('d64215484dde5c81c8d5', {
   cluster: 'mt1',
+  authEndpoint: 'https://gg-pusher-auth.herokuapp.com/pusher/auth'
 });
 
 class RealtimeClient {
   client = pusher
-  channel = pusher.subscribe('terminal')
-  send(message) {
-    this.channel.trigger('input', message)
+  commands:any
+  stdout:any
+  commandsConnected:boolean
+  stdoutConnected:boolean
+  queuedCommandsCbs: Array<Function>
+  queuedStdoutCbs: Array<Function>
+
+  constructor() {
+    this.commandsConnected = false
+    this.stdoutConnected = false
+    this.queuedCommandsCbs = []
+    this.queuedStdoutCbs = []
+    let commands = pusher.subscribe('private-stdin')
+    let stdout = pusher.subscribe('private-stdout')
+    this.commands = commands
+    this.stdout = stdout
+
+    let self = this
+    this.commands.bind('pusher:subscription_succeeded', function() {
+      let cb:Function | undefined
+      while (cb = self.queuedCommandsCbs.pop()) {
+        self.commands.bind('client-new-command', cb)
+      }
+      self.commandsConnected = true
+      while (cb = self.queuedStdoutCbs.pop()) {
+        self.stdout.bind('client-new-output', cb)
+      } 
+      self.stdoutConnected = true
+    });
+  }
+  command(message) {
+    this.commands.trigger('client-new-command', message)
+  }
+
+  output(message) {
+    console.log('sending output')
+    this.stdout.trigger('client-new-output', message)
+  }
+
+  subscribeOutput(cb:Function) {
+    if (this.stdoutConnected) return this.stdout.bind('client-new-output', cb)
+    this.queuedStdoutCbs.push(cb)
+    return true
+  }
+  subscribeInput(cb:Function) {
+    if (this.commandsConnected) return this.commands.bind('client-new-command', cb)
+    this.queuedCommandsCbs.push(cb)
+    return true
   }
 }
 class WebRTCHost {

@@ -46,10 +46,9 @@ const Input = styled.input`
 
 interface State {
   client: any,
-  rtc?: any,
   commands: {},
-  history: [],
-  cmdHistory: [],
+  history: Array<string>,
+  cmdHistory: Array<string>,
   cmdPos: -1,
   prompt: '$ ',
   waiting: boolean,
@@ -57,7 +56,7 @@ interface State {
 }
 class Terminal extends React.Component<{}, State> {
   term: any
-  constructor(props: any) {
+  constructor(props) {
     super(props)
     let client = new RealtimeClient();
     this.state = {
@@ -79,37 +78,25 @@ class Terminal extends React.Component<{}, State> {
     this.scrollCommandHistory = this.scrollCommandHistory.bind(this)
     this.addHistory = this.addHistory.bind(this)
     this.addCommandHistory = this.addCommandHistory.bind(this)
+    this.processResponse = this.processResponse.bind(this)
+    this.send = this.send.bind(this)
   }
   clearHistory() {
       this.setState({ history: [] });
   }
   send(message: string) {
-    let rtc = this.state.rtc
-    if (rtc) {
-      console.log(rtc)
-      rtc.send(message)
-    }
+    this.state.client.command(message)
   }
-  processResponse(err, httpResponse, body) {
+  processResponse(output) {
       this.setState({ waiting: false })
-      var prefix
-      if (httpResponse.statusCode == 200 || httpResponse.statusCode == 201) {
-          prefix = "✓ "
-      } else if (httpResponse.statusCode >= 400 && httpResponse.statusCode < 500 ) {
-          prefix = "! "
-      } else {
-          prefix = ""
-      }
-      if (body.message) {
-        this.addHistory(prefix + body.message)
-      }
-      if (body.suggestion) {
-          this.addHistory("* " + body.suggestion)
+      if (output) {
+        this.addHistory(output)
       }
       this.addHistory("")
   }
   componentDidMount() {
       this.handleFocus();
+      this.state.client.subscribeOutput(this.processResponse)
   }
   componentDidUpdate() {
       //var el = ReactDOM.findDOMNode(this);
@@ -163,7 +150,7 @@ class Terminal extends React.Component<{}, State> {
   }
   addCommandHistory(cmd) {
     var cmdHistory = this.state.cmdHistory;
-    //cmdHistory.push(cmd)
+    cmdHistory.push(cmd)
     this.setState({
       cmdHistory: cmdHistory,
       cmdPos: -1
@@ -171,7 +158,7 @@ class Terminal extends React.Component<{}, State> {
   }
   addHistory(output) {
     var history = this.state.history;
-    //history.push(output)
+    history.push(output)
     this.setState({
       'history': history
     });

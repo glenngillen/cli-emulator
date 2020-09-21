@@ -9,15 +9,17 @@ const Container = styled.div`
   font-family: ${theme['code-font-family']};
   color: ${theme['color-background']};
   background: ${theme['terminal-color-background']};
-  height: 400px;
+  height: 100%;
   -webkit-box-shadow: 0px 0px 13px 0px rgba(50, 50, 50, 0.59);
   -moz-box-shadow:    0px 0px 13px 0px rgba(50, 50, 50, 0.59);
   box-shadow:         0px 0px 13px 0px rgba(50, 50, 50, 0.59);
   overflow: hidden;
   overflow-y: auto;
-  margin-bottom: ${math(theme['grid-base-spacing'] + '*10')};
 `
 
+const Holder = styled.div`
+  margin: ${math(theme['grid-base-spacing'] + '* 2')} 
+`
 interface Props {
   peer?: string
 }
@@ -26,11 +28,11 @@ class Window extends React.Component<Props> {
     return <Box margin="none" fill={true}>
       <WindowTitleBar/>
       <Container>
-        <div className="holder">
+        <Holder>
           <div id="content">
             {this.props.children}
           </div>
-        </div>
+        </Holder>
       </Container>
     </Box>
   }
