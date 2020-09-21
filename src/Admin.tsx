@@ -6,11 +6,19 @@ import Notepad from "./Notepad"
 import Output from "./Output"
 import { RealtimeClient } from "./WebRTCHost";
 import styled from "styled-components";
+import { theme } from "./Theme"
 
 const Command = styled.p`
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+
   &:before {
     content: '$ '
   }
+`
+const CommandOutput = styled.p`
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
 `
 interface History {
   type: string
@@ -21,6 +29,7 @@ interface State {
   history: Array<History>
 }
 class Admin extends React.Component<{}, State> {
+  commandPanel: any
   constructor(props) {
     super(props)
     let client = new RealtimeClient()
@@ -45,6 +54,7 @@ class Admin extends React.Component<{}, State> {
     this.setState({ 
       history: history
     })
+    this.commandPanel.processInput(cmd)
   }
 
   newOutput(out) {
@@ -53,6 +63,11 @@ class Admin extends React.Component<{}, State> {
     this.setState({
       history: history
     })
+  }
+
+  sendOutput(out) {
+    this.newOutput(out)
+    this.state.client.output(out)
   }
 
   render() {
@@ -68,13 +83,17 @@ class Admin extends React.Component<{}, State> {
     >
       <Box gridArea="terminal">
         <Window>
-          {this.state.history.map(item => (
-            <Command>{item.display}</Command>
-          ))}
+          {this.state.history.map(item => {
+            if (item.type==='input') {
+              return <Command>{item.display}</Command>
+            } else if (item.type==='output') {
+              return <CommandOutput>{item.display}</CommandOutput>
+            }
+          })}
         </Window>
       </Box>
-      <Output gridArea="output" client={this.state.client} admin={this}/>
-      <CommandPanel gridArea="commands"/>
+      <Output gridArea="output" admin={this}/>
+      <CommandPanel gridArea="commands" admin={this} ref={(ref) => this.commandPanel = ref}/>
       <Notepad gridArea="notes"/>
     </Grid>
   }

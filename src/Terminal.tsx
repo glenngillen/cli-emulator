@@ -21,15 +21,18 @@ const InputArea = styled.div`
   }
 `
 const Prompt = styled.span`
-  color: $terminal-color-prompt;
-  font-family: $font-family-fixed;
-  font-size: $font-size;
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  color: ${theme['terminal-color-prompt']};
   margin-right: 0.65em;
+  font-weight: normal;
 `
 
 const Input = styled.input`
-  font-family: $font-family-fixed;
-  font-size: $font-size;
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  color: ${theme['terminal-color-prompt']};
+  font-weight: normal;
   border: none;
   padding: 0;
   margin: 0;
@@ -93,19 +96,11 @@ class Terminal extends React.Component<{}, State> {
         this.addHistory(output)
       }
       this.addHistory("")
+      this.handleFocus()
   }
   componentDidMount() {
       this.handleFocus();
       this.state.client.subscribeOutput(this.processResponse)
-  }
-  componentDidUpdate() {
-      //var el = ReactDOM.findDOMNode(this);
-      //var container = document.getElementsByClassName('container')[0];
-      //var container = document.getElementById("main");
-      //if (container && el) {
-      //  container.scrollTop = el.scrollHeight;
-      //}
-      //this.handleFocus();
   }
   handleKey(e) {
     switch(e.which) {
@@ -135,12 +130,11 @@ class Terminal extends React.Component<{}, State> {
 
               this.addHistory(this.state.prompt + " " + input_text);
               this.addCommandHistory(input_text)
+              this.setState({
+                waiting: true
+              })
 
-              if (command === undefined) {
-                  this.addHistory("sh: command not found: " + input);
-              } else {
-                  command(arg);
-              }
+                  //this.addHistory("sh: command not found: " + input);
           }
           this.clearInput();
       }

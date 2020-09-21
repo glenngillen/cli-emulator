@@ -1,10 +1,15 @@
 import React from "react";
 import { Box, TextArea } from "grommet";
 import styled from "styled-components";
+import { theme } from "./Theme"
 
 const Notes = styled(TextArea)`
   background: #2b303b;
   color: #fff;
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  white-space: pre;
 `
 
 interface NotepadProps {

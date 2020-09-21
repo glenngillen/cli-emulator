@@ -1,10 +1,18 @@
 import React from "react";
 import { Box, TextArea } from "grommet";
 import styled from "styled-components";
+import { theme } from "./Theme"
 
+const Out = styled(TextArea)`
+  background: #2b303b;
+  color: #fff;
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  white-space: pre;
+`
 interface OutputProps {
   gridArea?: string
-  client: any
   admin: any
 }
 interface OutputState {
@@ -18,14 +26,13 @@ class Output extends React.Component<OutputProps, OutputState> {
 
   respond(event) {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-      this.props.client.output(event.target.value)
-      this.props.admin.newOutput(event.target.value)
+      this.props.admin.sendOutput(event.target.value)
       event.target.value = ''
     }
   }
   render() {
     return <Box gridArea={this.props.gridArea} >
-      <TextArea fill={true} onKeyPress={this.respond}/>
+      <Out fill={true} onKeyPress={this.respond} resize={false} placeholder="Put command responses in here (CMD+Enter to send)"/>
     </Box>
   }
 }

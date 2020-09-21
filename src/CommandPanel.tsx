@@ -4,6 +4,7 @@ import styled from "styled-components";
 
 interface PanelProps {
   gridArea?: string
+  admin: any
 }
 interface MatchedCommand {
   cmd: string
@@ -32,6 +33,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.hideAdd = this.hideAdd.bind(this)
     this.addCommand = this.addCommand.bind(this)
     this.saveCommands = this.saveCommands.bind(this)
+    this.processInput = this.processInput.bind(this)
   }
 
   showAdd() {
@@ -43,6 +45,15 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   saveCommands() {
+  }
+
+  processInput(cmd) {
+    let resp = this.state.cmds.find((item) => {
+      return cmd == item.cmd
+    })
+    if (resp) {
+      this.props.admin.sendOutput(resp.output)
+    }
   }
 
   componentDidMount() {
