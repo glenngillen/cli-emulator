@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Button, Footer, Layer, FormField, TextInput, TextArea, Grid } from "grommet";
+import { Trash } from 'grommet-icons';
 import styled, { keyframes } from "styled-components";
 import { theme } from "./Theme";
 
@@ -22,6 +23,14 @@ interface PanelState {
 const highlight = keyframes`
   from { background: yellow; }
   to { background: initial; }
+`
+const ActionTray = styled(Box)`
+  background: #ddd;
+  color: #333;
+  padding: ${theme['grid-base-spacing']};
+  border-bottom: 1px solid #aaa;
+  align: right;
+  cursor: pointer;
 `
 const Cmd = styled(Box)`
   font-family: ${theme['code-font-family']};
@@ -58,6 +67,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.saveCommands = this.saveCommands.bind(this)
     this.loadCommands = this.loadCommands.bind(this)
     this.processInput = this.processInput.bind(this)
+    this.removeCommand = this.removeCommand.bind(this)
   }
 
   showAdd() {
@@ -120,6 +130,18 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.hideAdd()
   }
 
+  removeCommand(cmd) {
+    console.log(cmd)
+    let cmds = this.state.cmds
+    let idx = cmds.findIndex((item) => {
+      return item.cmd === cmd.cmd && item.output === cmd.output
+    })
+    if (idx >= 0) {
+      cmds.splice(idx, 1)
+      this.setState({ cmds: cmds })
+    }
+  }
+
   render() {
     return <Box gridArea={this.props.gridArea} fill={true} direction="column">
       {this.state.showAdd && (
@@ -139,13 +161,18 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       )}
       <Box flex="grow">
         {this.state.cmds.map((item, idx) => (
-          <Grid columns={['small','flex']} areas={[['cmd','output']]} gap="none" pad="none" >
+          <Grid columns={['small','flex','xsmall']} areas={[['cmd','output','icon']]} gap="none" pad="none" >
             <Cmd gridArea="cmd" className={item.active ? 'active' : ''}>
               {item.cmd}
             </Cmd>
             <Output gridArea="output" className={item.active ? 'active' : ''}>
               {item.output}
             </Output>
+            <ActionTray gridArea='icon'>
+              <Button onClick={() => { this.removeCommand(item) }}>
+                <Trash />
+              </Button>
+            </ActionTray>
           </Grid>
         ))}
       </Box>
