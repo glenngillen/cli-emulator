@@ -52,10 +52,28 @@ const Output = styled(Box)`
   color: #333;
   padding: ${theme['grid-base-spacing']};
   border-bottom: 1px solid #aaa;
+  white-space: pre;
 
   &.active {
     animation: ${highlight} 2s;
   }
+`
+const NewCmd = styled(TextInput)`
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  background: #2b303b;
+  color: #fff;
+`
+const NewOutput = styled(TextArea)`
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  white-space: pre;
+  background: #2b303b;
+  color: #fff;
+  overflow: auto;
+  height: 300px;
 `
 class CommandPanel extends React.Component<PanelProps, PanelState> {
   constructor(props) {
@@ -139,6 +157,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     if (idx >= 0) {
       cmds.splice(idx, 1)
       this.setState({ cmds: cmds })
+      this.saveCommands()
     }
   }
 
@@ -148,10 +167,10 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
         <Layer onEsc={this.hideAdd} full={true}>
           <Box pad="medium">
             <FormField label="Command to match">
-              <TextInput onChange={event => this.setState({newCmd: event.target.value})}/>
+              <NewCmd onChange={event => this.setState({newCmd: event.target.value})}/>
             </FormField>
             <FormField label="Command output">
-              <TextArea onChange={event => this.setState({newOutput: event.target.value})}/>
+              <NewOutput onChange={event => this.setState({newOutput: event.target.value})}/>
             </FormField>
             <Box direction="row-reverse">
               <Button primary label="Add command" onClick={this.addCommand}/>
