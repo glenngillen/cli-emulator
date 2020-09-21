@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Button, Footer, Layer, FormField, TextInput, TextArea, Grid } from "grommet";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { theme } from "./Theme";
 
 interface PanelProps {
@@ -10,6 +10,7 @@ interface PanelProps {
 interface MatchedCommand {
   cmd: string
   output: string
+  active?: boolean
 }
 interface PanelState {
   showAdd: boolean
@@ -18,6 +19,10 @@ interface PanelState {
   cmds: Array<MatchedCommand>
 }
 
+const highlight = keyframes`
+  from { background: yellow; }
+  to { background: initial; }
+`
 const Cmd = styled(Box)`
   font-family: ${theme['code-font-family']};
   font-size: ${theme['font-size']};
@@ -25,6 +30,11 @@ const Cmd = styled(Box)`
   color: #333;
   padding: ${theme['grid-base-spacing']};
   border-bottom: 1px solid #aaa;
+
+  &.active {
+    animation: ${highlight} 2s;
+  }
+  
 `
 const Output = styled(Box)`
   font-family: ${theme['code-font-family']};
@@ -33,6 +43,10 @@ const Output = styled(Box)`
   color: #333;
   padding: ${theme['grid-base-spacing']};
   border-bottom: 1px solid #aaa;
+
+  &.active {
+    animation: ${highlight} 2s;
+  }
 `
 class CommandPanel extends React.Component<PanelProps, PanelState> {
   constructor(props) {
@@ -71,10 +85,19 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   processInput(cmd) {
-    let resp = this.state.cmds.find((item) => {
+    let idx = this.state.cmds.findIndex((item) => {
       return cmd == item.cmd
     })
-    if (resp) {
+    if (idx >= 0) {
+      let cmds = this.state.cmds
+      let resp = cmds[idx]
+      cmds[idx].active = true
+      this.setState({ cmds: cmds })
+      let self = this
+      setTimeout(() => {
+        cmds[idx].active = false
+        self.setState({ cmds: cmds })
+      },2000)
       this.props.admin.sendOutput(resp.output)
     }
   }
@@ -117,10 +140,10 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       <Box flex="grow">
         {this.state.cmds.map((item, idx) => (
           <Grid columns={['small','flex']} areas={[['cmd','output']]} gap="none" pad="none" >
-            <Cmd gridArea="cmd">
+            <Cmd gridArea="cmd" className={item.active ? 'active' : ''}>
               {item.cmd}
             </Cmd>
-            <Output gridArea="output">
+            <Output gridArea="output" className={item.active ? 'active' : ''}>
               {item.output}
             </Output>
           </Grid>
