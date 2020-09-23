@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Button, Footer, Layer, FormField, TextInput, TextArea, Grid } from "grommet";
+import { Box, Button, Footer, Layer, FormField, TextInput, TextArea, Grid, Heading } from "grommet";
 import { Trash } from 'grommet-icons';
 import styled, { keyframes } from "styled-components";
 import { theme } from "./Theme";
@@ -18,6 +18,7 @@ interface PanelState {
   newCmd?: string
   newOutput?: string
   cmds: Array<MatchedCommand>
+  outputOptions?: Array<any>
 }
 
 const highlight = keyframes`
@@ -31,6 +32,10 @@ const ActionTray = styled(Box)`
   border-bottom: 1px solid #aaa;
   align: right;
   cursor: pointer;
+
+  &.active {
+    animation: ${highlight} 2s;
+  }
 `
 const Cmd = styled(Box)`
   font-family: ${theme['code-font-family']};
@@ -57,6 +62,15 @@ const Output = styled(Box)`
   &.active {
     animation: ${highlight} 2s;
   }
+`
+const OutputOption = styled(Box)`
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  background: #2b303b;
+  color: #fff;
+  margin: 10px 0;
+  cursor: pointer;
 `
 const NewCmd = styled(TextInput)`
   font-family: ${theme['code-font-family']};
@@ -86,6 +100,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.loadCommands = this.loadCommands.bind(this)
     this.processInput = this.processInput.bind(this)
     this.removeCommand = this.removeCommand.bind(this)
+    this.sendOption = this.sendOption.bind(this)
   }
 
   showAdd() {
@@ -113,21 +128,44 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   processInput(cmd) {
-    let idx = this.state.cmds.findIndex((item) => {
-      return cmd === item.cmd
+    let matchedIx : Array<number>
+    matchedIx = []
+    let matched = this.state.cmds.filter((item, idx) => {
+      if (cmd === item.cmd) {
+        matchedIx.push(idx)
+        return true
+      } else if (item.cmd.match(/^\/.+\/([gimy]*)$/)) {
+        var match = item.cmd.match(new RegExp('^/(.*?)/([gimy]*)$'));
+        if (match && cmd.match(new RegExp(match[1], match[2]))) {
+          matchedIx.push(idx)
+          return true
+        }
+      }
+      return false
     })
-    if (idx >= 0) {
+    if (matched.length > 0) {
       let cmds = this.state.cmds
-      let resp = cmds[idx]
-      cmds[idx].active = true
+      matchedIx.forEach(idx => {
+        cmds[idx].active = true
+      })
       this.setState({ cmds: cmds })
       let self = this
       setTimeout(() => {
-        cmds[idx].active = false
+        matchedIx.forEach(idx => {
+          cmds[idx].active = false
+        })
         self.setState({ cmds: cmds })
       },2000)
-      this.props.admin.sendOutput(resp.output)
+      if (matched.length === 1) {
+        let resp = matched[0]
+        this.props.admin.sendOutput(resp.output)
+      } else {
+        this.setState({
+          outputOptions: matched
+        })
+      }
     }
+
   }
 
   componentDidMount() {
@@ -160,8 +198,25 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     }
   }
 
+  sendOption(ev) {
+    this.setState({
+      outputOptions: []
+    })
+    this.props.admin.sendOutput(ev.target.textContent)
+  }
+
   render() {
     return <Box gridArea={this.props.gridArea} fill={true} direction="column">
+      {this.state.outputOptions && this.state.outputOptions.length > 0 && (
+        <Layer onEsc={this.hideAdd} full={true}>
+          <Heading>Choose the correct output to send:</Heading>
+          <Box pad="medium">
+            {this.state.outputOptions.map(opt => {
+              return <OutputOption pad="medium" gap="medium" onClick={this.sendOption}>{opt.output}</OutputOption>
+            })}
+          </Box>
+       </Layer> 
+      )}
       {this.state.showAdd && (
         <Layer onEsc={this.hideAdd} full={true}>
           <Box pad="medium">
@@ -186,7 +241,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
             <Output gridArea="output" className={item.active ? 'active' : ''}>
               {item.output}
             </Output>
-            <ActionTray gridArea='icon'>
+            <ActionTray gridArea='icon' className={item.active ? 'active' : '' }>
               <Button onClick={() => { this.removeCommand(item) }}>
                 <Trash />
               </Button>
