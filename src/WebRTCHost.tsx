@@ -1,6 +1,5 @@
 import SimplePeer from "simple-peer";
 import Pusher from 'pusher-js';
-import * as PusherTypes from 'pusher-js';
 var peers: Array<any>
 
 const pusher = new Pusher('d64215484dde5c81c8d5', {
@@ -10,53 +9,71 @@ const pusher = new Pusher('d64215484dde5c81c8d5', {
 
 class RealtimeClient {
   client = pusher
-  commands:any
-  stdout:any
-  commandsConnected:boolean
-  stdoutConnected:boolean
-  queuedCommandsCbs: Array<Function>
+  id?:string
+  channel?: any
+  initializing: boolean
+  connected:boolean
+  queuedStdinCbs: Array<Function>
   queuedStdoutCbs: Array<Function>
 
   constructor() {
-    this.commandsConnected = false
-    this.stdoutConnected = false
-    this.queuedCommandsCbs = []
+    pusher.bind_global((event, data) => { if (event === 'pusher:error') console.error(data)})
+    this.initializing = false
+    this.connected = false
+    this.queuedStdinCbs = []
     this.queuedStdoutCbs = []
-    let commands = pusher.subscribe('private-stdin')
-    let stdout = pusher.subscribe('private-stdout')
-    this.commands = commands
-    this.stdout = stdout
-
+  }
+  disconnect() {
+    if (!this.connected) return
+    pusher.unsubscribe(this.channelName())
+    this.connected = false
+    this.initializing = false
+  }
+  channelName() {
+    return 'presence-'+this.id
+  }
+  connect(id:string, connectCb?) {
+    this.disconnect()
+    this.id = id
+    this.initializing = false
+    this.queuedStdinCbs = []
+    this.queuedStdoutCbs = []
+    let channel = pusher.subscribe(this.channelName())
+    this.channel = channel 
     let self = this
-    this.commands.bind('pusher:subscription_succeeded', function() {
+
+    this.channel.bind('pusher:subscription_succeeded', function() {
+      if (connectCb) connectCb()
       let cb:Function | undefined
-      while (cb = self.queuedCommandsCbs.pop()) {
-        self.commands.bind('client-new-command', cb)
+      while (cb = self.queuedStdinCbs.pop()) {
+        self.channel?.bind('client-new-stdin', cb)
       }
-      self.commandsConnected = true
       while (cb = self.queuedStdoutCbs.pop()) {
-        self.stdout.bind('client-new-output', cb)
+        self.channel?.bind('client-new-stdout', cb)
       } 
-      self.stdoutConnected = true
+      self.connected = true
     });
+
+  }
+  members() {
+    return this?.channel?.members?.count
   }
   command(message) {
-    this.commands.trigger('client-new-command', message)
+    this.channel?.trigger('client-new-stdin', message)
   }
 
   output(message) {
-    console.log('sending output')
-    this.stdout.trigger('client-new-output', message)
+    this.channel?.trigger('client-new-stdout', message)
   }
 
   subscribeOutput(cb:Function) {
-    if (this.stdoutConnected) return this.stdout.bind('client-new-output', cb)
+    if (this.connected) return this.channel?.bind('client-new-stdout', cb)
     this.queuedStdoutCbs.push(cb)
     return true
   }
   subscribeInput(cb:Function) {
-    if (this.commandsConnected) return this.commands.bind('client-new-command', cb)
-    this.queuedCommandsCbs.push(cb)
+    if (this.connected) return this.channel?.bind('client-new-stdin', cb)
+    this.queuedStdinCbs.push(cb)
     return true
   }
 }

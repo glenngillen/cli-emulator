@@ -1,8 +1,12 @@
 import React from 'react'
 import { RealtimeClient } from "./WebRTCHost";
+import { Box } from "grommet"
 import styled from "styled-components";
 import { theme } from "./Theme";
 
+const Spin = styled.span`
+  white-space: pre;
+`
 const InputArea = styled.div`
   height: 100%;
   padding: 20px;
@@ -55,7 +59,105 @@ interface State {
   cmdPos: -1,
   prompt: '$ ',
   waiting: boolean,
-  inlineInput: boolean
+  inlineInput: boolean,
+  connected: boolean,
+}
+
+interface SpinnerState {
+  step: number
+}
+class Spinner extends React.Component<{}, SpinnerState> {
+  frames: Array<string>
+  intervalId?: NodeJS.Timeout
+
+  constructor(props) {
+    super(props)
+    this.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    this.state = { step: 0 }
+  }
+  componentDidMount() {
+    this.intervalId = setInterval(() => {
+      let nextStep = this.state.step == (this.frames.length - 1) ? 0 : this.state.step + 1
+      this.setState({ step: nextStep })
+    }, 80)
+  }
+  componentWillUnmount() {
+    if (this.intervalId) clearInterval(this.intervalId)
+  }
+  render() {
+    return <Spin>
+      {this.frames[this.state.step]}   
+    </Spin>
+  }
+}
+interface PasswordProps {
+  login: any
+}
+interface PasswordState {
+  connecting: boolean
+  connected: boolean
+  attempts: number
+}
+class PasswordPrompt extends React.Component<PasswordProps, PasswordState> {
+  input: any
+  constructor(props) {
+    super(props)
+    this.state = {
+      connecting: false,
+      connected: false,
+      attempts: 0
+    }
+
+    this.handlePassword = this.handlePassword.bind(this)
+    this.focus = this.focus.bind(this)
+  }
+  focus() {
+    this.input.focus()
+  }
+  handlePassword(e) {
+    if (e.key === "Enter") { 
+      let password = e.target.value
+      this.setState({
+        connecting: true
+      })
+      this.props.login(password, (loggedIn) => {
+        let newAttempts: number
+        if (loggedIn) {
+          newAttempts = 0
+        } else {
+          newAttempts = this.state.attempts + 1
+        }
+        this.setState({
+          connecting: false,
+          attempts: newAttempts,
+          connected: loggedIn
+        }, () => { if (!loggedIn) this.focus() })
+      })
+    }
+  }
+  componentDidMount() {
+    this.focus()
+  }
+  render() {
+    const field = <Input type="text" onKeyDown={this.handlePassword} ref={(ref) => this.input = ref } />
+    let errors : Array<JSX.Element>
+    errors = []    
+    for(let i=0; i<this.state.attempts; i++) {
+      errors.push(<p key={"password-error-"+i}>Password: <br/>Incorrect password!</p>)
+    }
+    let content : JSX.Element
+    if (this.state.connected) {
+      content = <p>Logged in!</p>
+    } else {
+      content = <p>Password: {!this.state.connecting && field}{this.state.connecting && <Spinner/>}</p>
+    }
+    return (
+      <Box>
+        {errors}
+        {content}
+      </Box>
+    )
+  }
 }
 class Terminal extends React.Component<{}, State> {
   term: any
@@ -70,7 +172,8 @@ class Terminal extends React.Component<{}, State> {
       cmdPos: -1,
       prompt: '$ ',
       waiting: false,
-      inlineInput: false
+      inlineInput: false,
+      connected: false
     }
     this.handleClick = this.handleClick.bind(this)
     this.handleFocus = this.handleFocus.bind(this)
@@ -82,7 +185,12 @@ class Terminal extends React.Component<{}, State> {
     this.addHistory = this.addHistory.bind(this)
     this.addCommandHistory = this.addCommandHistory.bind(this)
     this.processResponse = this.processResponse.bind(this)
+    this.connect = this.connect.bind(this)
+    this.login = this.login.bind(this)
     this.send = this.send.bind(this)
+  }
+  connect(password:string, cb) {
+    this.state.client.connect(password, cb)
   }
   clearHistory() {
       this.setState({ history: [] });
@@ -115,7 +223,24 @@ class Terminal extends React.Component<{}, State> {
         break;
     }
   }
+
+  login(password, cb) {
+    this.connect(password, () => {
+      let loggedIn = this.state.client.members() >= 2 ? true : false
+      cb(loggedIn)
+      if (loggedIn) {
+        setTimeout(() => {
+          this.state.client.subscribeOutput(this.processResponse)
+          this.setState({
+            connected: true
+          }, this.handleFocus )
+        }, 2000)
+
+      }
+    })
+  }
   handleInput(e) {
+    if (!this.state.connected) return
       if (e.key === "Enter") {
           var input_text = this.term.value;
           this.send(input_text)
@@ -245,14 +370,19 @@ class Terminal extends React.Component<{}, State> {
               {output}
             </InputArea>
           )
-      } else {
+        } else {        
+          let prompt: JSX.Element
+          if (this.state.connected) {
+            prompt = <p>
+                <Prompt>{this.state.prompt}<Input type="text" onKeyDown={this.handleKey} onKeyPress={this.handleInput} ref={(ref) => this.term = ref }/></Prompt>
+              </p>
+          } else {
+            prompt = <PasswordPrompt login={this.login} ref={(ref) => this.term = ref }/>
+          }
           return (
             <InputArea onClick={this.handleClick}>
-              {output}
-              <p>
-                <Prompt>{this.state.prompt}</Prompt>
-                <Input type="text" onKeyDown={this.handleKey} onKeyPress={this.handleInput} ref={(ref) => this.term = ref }/>
-              </p>
+                {output}
+                {prompt}
             </InputArea>
           )
       }

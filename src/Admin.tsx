@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Box } from "grommet";
+import { Grid, Box, Button } from "grommet";
 import Window from "./Window"
 import CommandPanel from "./CommandPanel"
 import Notepad from "./Notepad"
@@ -20,31 +20,65 @@ const CommandOutput = styled.p`
   font-family: ${theme['code-font-family']};
   font-size: ${theme['font-size']};
 `
+interface LoginPromptParams {
+  password: string
+  resetPassword: any
+}
+class LoginPrompt extends React.Component<LoginPromptParams> {
+  render() { 
+    return <Box>
+    <CommandOutput>
+      Have the other person enter the following password at the prompt: {this.props.password}
+    </CommandOutput>
+    <Button primary label="New session" onClick={this.props.resetPassword}/>
+    </Box>
+  }
+}
 interface History {
   type: string
   display: string
 }
 interface State {
   client: any
-  history: Array<History>
+  history: Array<History>,
+  password?: string
 }
 class Admin extends React.Component<{}, State> {
   commandPanel: any
   constructor(props) {
     super(props)
-    let client = new RealtimeClient()
     this.state = {
       client: new RealtimeClient(),
       history: []
     }
 
     this.componentDidMount = this.componentDidMount.bind(this)
-
+    this.getSessionPassword = this.getSessionPassword.bind(this)
+    this.newUserInput = this.newUserInput.bind(this)
+    this.resetPassword = this.resetPassword.bind(this)
+    this.connect = this.connect.bind(this)
+  }
+  getSessionPassword() {
+    if (!window.localStorage.getItem('password')) {
+      let code = Math.random().toString(36).substring(2, 6)
+      window.localStorage.setItem('password', code)
+    }
+    let password = window.localStorage.getItem('password')
+    return password as string
+  }
+  connect() {
+    if (this.state.password) {
+      let self = this
+      this.state.client.connect(this.state.password)
+      this.state.client.subscribeInput((data) => {
+        self.newUserInput(data)
+      })
+    }
   }
   componentDidMount() {
-    let self = this
-    this.state.client.subscribeInput((data) => {
-      self.newUserInput(data)
+    let password: string = this.getSessionPassword()
+    this.setState({ password: password }, () => {
+      this.connect()
     })
   }
 
@@ -62,6 +96,14 @@ class Admin extends React.Component<{}, State> {
     history.push({type: 'output', display: out})
     this.setState({
       history: history
+    })
+  }
+
+  resetPassword() {
+    window.localStorage.removeItem('password')
+    let password: string = this.getSessionPassword()
+    this.setState({ password: password }, () => {
+      this.connect()
     })
   }
 
@@ -83,11 +125,14 @@ class Admin extends React.Component<{}, State> {
     >
       <Box gridArea="terminal">
         <Window>
-          {this.state.history.map(item => {
+          {this.state.password && (
+            <LoginPrompt password={this.state.password} resetPassword={this.resetPassword}/>
+          )}
+          {this.state.history.map((item, idx) => {
             if (item.type==='input') {
-              return <Command>{item.display}</Command>
+              return <Command key={"cmd-"+idx}>{item.display}</Command>
             } else if (item.type==='output') {
-              return <CommandOutput>{item.display}</CommandOutput>
+              return <CommandOutput key={"cmdout-"+idx}>{item.display}</CommandOutput>
             }
           })}
         </Window>

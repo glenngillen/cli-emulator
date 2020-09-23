@@ -20,12 +20,12 @@ const Container = styled.div`
 const Holder = styled.div`
   margin: ${math(theme['grid-base-spacing'] + '* 2')} 
 `
-interface Props {
-  peer?: string
+interface WindowProps {
+  onClick?: any
 }
-class Window extends React.Component<Props> {
+class Window extends React.Component<WindowProps> {
   render() {
-    return <Box margin="none" fill={true}>
+    return <Box margin="none" fill={true} onClick={this.props.onClick} focusIndicator={false}>
       <WindowTitleBar/>
       <Container>
         <Holder>

@@ -114,7 +114,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
 
   processInput(cmd) {
     let idx = this.state.cmds.findIndex((item) => {
-      return cmd == item.cmd
+      return cmd === item.cmd
     })
     if (idx >= 0) {
       let cmds = this.state.cmds
@@ -149,7 +149,6 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   removeCommand(cmd) {
-    console.log(cmd)
     let cmds = this.state.cmds
     let idx = cmds.findIndex((item) => {
       return item.cmd === cmd.cmd && item.output === cmd.output

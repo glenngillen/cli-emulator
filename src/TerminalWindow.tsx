@@ -2,15 +2,19 @@ import React from "react";
 
 import Window from './Window'
 import Terminal from './Terminal'
-import TerminalCommandOutput from "./TerminalCommandOutput"
-import TerminalCommand from "./TerminalCommand"
-import WindowTitleBar from "./WindowTitleBar"
-import './terminal.scss';
 
 class TerminalWindow extends React.Component {
+  term: any
+  constructor(props) {
+    super(props)
+    this.click = this.click.bind(this)
+  }
+  click() {
+    this.term.handleClick()
+  }
   render() {
-    return <Window>
-      <Terminal />
+    return <Window onClick={this.click}>
+      <Terminal ref={(ref) => this.term = ref}/>
     </Window>
   }
 }
