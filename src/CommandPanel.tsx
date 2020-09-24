@@ -1,6 +1,6 @@
 import React from "react";
-import { Box, Button, Footer, Layer, FormField, TextInput, TextArea, Grid, Heading } from "grommet";
-import { Trash } from 'grommet-icons';
+import { Box, Button, Anchor, Footer, Layer, FormField, TextInput, TextArea, Grid, Heading } from "grommet";
+import { Trash, Edit } from 'grommet-icons';
 import styled, { keyframes } from "styled-components";
 import { theme } from "./Theme";
 
@@ -9,6 +9,7 @@ interface PanelProps {
   admin: any
 }
 interface MatchedCommand {
+  id?: string
   cmd: string
   output: string
   active?: boolean
@@ -19,6 +20,7 @@ interface PanelState {
   newOutput?: string
   cmds: Array<MatchedCommand>
   outputOptions?: Array<any>
+  edit?: any
 }
 
 const highlight = keyframes`
@@ -101,6 +103,8 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.processInput = this.processInput.bind(this)
     this.removeCommand = this.removeCommand.bind(this)
     this.sendOption = this.sendOption.bind(this)
+    this.editCommand = this.editCommand.bind(this)
+    this.saveCommand = this.saveCommand.bind(this)
   }
 
   showAdd() {
@@ -175,7 +179,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   addCommand() {
     let cmds = this.state.cmds
     if (this.state.newCmd && this.state.newOutput) {
-      cmds.push({cmd: this.state.newCmd, output: this.state.newOutput})
+      cmds.push({id: Math.random().toString(36).substr(2), cmd: this.state.newCmd, output: this.state.newOutput})
     }
     this.setState({
       cmds: cmds,
@@ -186,10 +190,57 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.hideAdd()
   }
 
+  editCommand(cmd) {
+    let command = this.state.cmds.find(item => {
+      if (cmd.id) {
+        return item.id === cmd.id
+      } else {
+        return item.cmd === cmd.cmd && item.output === cmd.output
+      } 
+    })
+    this.setState({
+      edit: command,
+      newCmd: command?.cmd,
+      newOutput: command?.output
+    })
+  }
+  saveCommand() {
+    let cmds = this.state.cmds
+    let idx = cmds.findIndex((item) => {
+      if (this.state.edit.id) {
+        return item.id === this.state.edit.id
+      } else {
+        return item.cmd === this.state.edit.cmd && item.output === this.state.edit.output
+      }
+    })
+    if (idx >= 0) {
+      let updatedCmd = cmds[idx] 
+      if (updatedCmd) {
+        if (!updatedCmd.id) updatedCmd.id = Math.random().toString(36).substr(2)
+        if (this.state.newCmd) updatedCmd.cmd = this.state.newCmd
+        if (this.state.newOutput) updatedCmd.output = this.state.newOutput
+        cmds.splice(idx, 1, updatedCmd)
+        this.setState({ 
+          cmds: cmds,
+          newCmd: '',
+          newOutput: '',
+          edit: null
+        })
+        this.saveCommands()
+      }
+      this.setState({
+        edit: null
+      })
+    }
+  }
   removeCommand(cmd) {
     let cmds = this.state.cmds
     let idx = cmds.findIndex((item) => {
-      return item.cmd === cmd.cmd && item.output === cmd.output
+      if (cmd.id) {
+        return item.id === cmd.id
+      } else {
+        return item.cmd === cmd.cmd && item.output === cmd.output
+      }
     })
     if (idx >= 0) {
       cmds.splice(idx, 1)
@@ -232,6 +283,21 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
           </Box>
         </Layer>
       )}
+      {this.state.edit && (
+        <Layer onEsc={this.hideAdd} full={true}>
+         <Box pad="medium">
+           <FormField label="Command to match">
+             <NewCmd value={this.state.newCmd} onChange={event => this.setState({newCmd: event.target.value})}/>
+           </FormField>
+           <FormField label="Command output">
+             <NewOutput value={this.state.newOutput} onChange={event => this.setState({newOutput: event.target.value})} />
+           </FormField>
+           <Box direction="row-reverse">
+             <Button primary label="Save changes" onClick={this.saveCommand}/>
+           </Box>
+         </Box>
+       </Layer>       
+      )}
       <Box flex="grow">
         {this.state.cmds.map((item, idx) => (
           <Grid columns={['small','flex','xsmall']} areas={[['cmd','output','icon']]} gap="none" pad="none" >
@@ -242,9 +308,8 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
               {item.output}
             </Output>
             <ActionTray gridArea='icon' className={item.active ? 'active' : '' }>
-              <Button onClick={() => { this.removeCommand(item) }}>
-                <Trash />
-              </Button>
+              <Anchor onClick={() => { this.editCommand(item) }} icon={<Edit />} />
+              <Anchor onClick={() => { this.removeCommand(item) }} icon={<Trash />} />
             </ActionTray>
           </Grid>
         ))}
