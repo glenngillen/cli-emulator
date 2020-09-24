@@ -72,6 +72,7 @@ interface State {
   waiting: boolean,
   inlineInput: boolean,
   connected: boolean,
+  lookingBusy?: boolean
 }
 
 
@@ -177,12 +178,13 @@ class Terminal extends React.Component<{}, State> {
     this.handleDelay = this.handleDelay.bind(this)
     this.updateWaitState = this.updateWaitState.bind(this)
     this.lastResponse = this.lastResponse.bind(this)
+    this.updateState = this.updateState.bind(this)
   }
   connect(password:string, cb) {
     this.state.client.connect(password, cb)
   }
   clearHistory() {
-      this.setState({ history: [] });
+      this.updateState({ history: [] });
   }
   send(message: string) {
     this.state.client.command(message)
@@ -190,25 +192,60 @@ class Terminal extends React.Component<{}, State> {
   lastResponse() {
     return this.state.history[this.state.history.length -1]
   }
-  updateWaitState() {
+  updateWaitState(extraState?) {
+    console.log('updating wait state')
     let last = this.lastResponse()
-    if (last.indexOf(":input:") > 0 || last.search(delayRe) > 0) {
-      let inlineState = last.indexOf(":input:") > 0 
-      this.setState({
+    let inputIdx = last.indexOf(":input:") 
+    let delayIdx = last.search(delayRe)
+    let waitState = {}
+    let delay = 1000
+    let matched = last.match(delayRe)
+    if (matched && matched[1]) delay = parseInt(matched[1]) * 1000
+    if (inputIdx != -1 && delayIdx != -1) {
+      if (inputIdx < delayIdx) {
+        waitState = { 
+          waiting: true,
+          inlineInput: true,
+          lookingBusy: false
+        }
+      } else {
+        waitState = {
+          waiting: true,
+          inlineInput: false,
+          lookingBusy: true
+        }
+        if (!this.state.lookingBusy) setTimeout(this.handleDelay, delay)
+      }
+    } else if (inputIdx > 0) {
+      waitState = {
         waiting: true,
-        inlineInput: inlineState
-      })
+        inlineInput: true,
+        lookingBusy: false
+      }
+    } else if (delayIdx > 0) {
+      waitState = {
+        waiting: true,
+        inlineInput: false,
+        lookingBusy: true
+      }
+      if (!this.state.lookingBusy) setTimeout(this.handleDelay, delay)
     } else {
-      this.setState({
+      waitState = {
         waiting: false,
-        inlineInput: false
-      })
+        inlineInput: false,
+        lookingBusy: false
+      }
     }
+    console.log(waitState)
+    this.updateState({
+      ...extraState, ...waitState
+    })
   }
   processResponse(output) {
+    let newState = {}
     let processed = replacePlaceholders(output)
     if (processed.indexOf(":input:") >= 0) {
-      this.setState({ inlineInput: true })
+      newState = { inlineInput: true }
       this.addHistory(processed)
       this.handleFocus()
     } else if (processed.search(delayRe) > 0) {
@@ -220,7 +257,7 @@ class Terminal extends React.Component<{}, State> {
       this.addHistory("")
       this.handleFocus()
     }
-    this.updateWaitState()
+    this.updateWaitState(newState)
   }
   componentDidMount() {
       this.handleFocus();
@@ -247,33 +284,31 @@ class Terminal extends React.Component<{}, State> {
       if (loggedIn) {
         setTimeout(() => {
           this.state.client.subscribeOutput(this.processResponse)
-          this.setState({
+          this.updateState({
             connected: true
-          }, this.handleFocus )
+          })
         }, 2000)
 
       }
     })
   }
   handleDelay() {
+    console.log('handle delay')
     var history = this.state.history;
     let latest = history[history.length - 1] 
+    console.log(latest)
     latest = latest.replace(delayRe, "") 
     history[history.length - 1] = latest
-    this.setState({
-      history: history,
-    });
-    this.updateWaitState()
+    this.setState({ lookingBusy: false}, () => {
+      this.updateWaitState({ history: history })
+    })
   }
   handleInline(response) {
     var history = this.state.history;
     let latest = history[history.length - 1] 
     latest = latest.replace(":input:", response)
     history[history.length - 1] = latest
-    this.setState({
-      history: history,
-    });
-    this.updateWaitState()
+    this.updateWaitState({ history: history })
   }
   handleInput(e) {
     if (!this.state.connected) return
@@ -281,7 +316,7 @@ class Terminal extends React.Component<{}, State> {
           var input_text = this.term.value;
           this.send(input_text)
           if (this.state.inlineInput) {
-              this.setState({ inlineInput: false })
+              this.updateState({ inlineInput: false })
               this.handleInline(input_text)
           } else {
               var input_array = input_text.split(' ', );
@@ -291,7 +326,7 @@ class Terminal extends React.Component<{}, State> {
 
               this.addHistory(this.state.prompt + " " + input_text);
               this.addCommandHistory(input_text)
-              this.setState({
+              this.updateState({
                 waiting: true
               })
 
@@ -300,13 +335,16 @@ class Terminal extends React.Component<{}, State> {
           this.clearInput();
       }
   }
+  updateState(state) {
+    this.setState(state, this.handleFocus)
+  }
   clearInput() {
     this.term.value = "";
   }
   addCommandHistory(cmd) {
     var cmdHistory = this.state.cmdHistory;
     cmdHistory.push(cmd)
-    this.setState({
+    this.updateState({
       cmdHistory: cmdHistory,
       cmdPos: -1
     })
@@ -314,7 +352,7 @@ class Terminal extends React.Component<{}, State> {
   addHistory(output) {
     var history = this.state.history;
     history.push(output)
-    this.setState({
+    this.updateState({
       'history': history
     });
   }
@@ -331,7 +369,7 @@ class Terminal extends React.Component<{}, State> {
         if (pos >= 0) {
           cmd = this.state.cmdHistory[pos]
           this.term.value = cmd
-          this.setState({ cmdPos: pos })
+          this.updateState({ cmdPos: pos })
           this.moveCursorToEnd(this.term)
         }
         break
@@ -343,7 +381,7 @@ class Terminal extends React.Component<{}, State> {
         } else if (this.state.cmdPos >= 0) {
           pos = this.state.cmdPos + 1
         }
-        this.setState({ cmdPos: pos })
+        this.updateState({ cmdPos: pos })
         if (pos < this.state.cmdHistory.length && pos != -1) {
           cmd = this.state.cmdHistory[pos]
           this.term.value = cmd
@@ -376,38 +414,22 @@ class Terminal extends React.Component<{}, State> {
       self.moveCursorToEnd(self.term)
     }
   }
-  render() {
+   render() {
     let self = this
       var output = this.state.history.map(function(op, i) {
+        console.log(op)
           let inputIdx = op.indexOf(":input:") 
           let delayIdx = op.search(delayRe)
-          if (self.state.inlineInput && inputIdx > 0 && (delayIdx == -1 || inputIdx < delayIdx)) {
-              var msg = op.substr(0, inputIdx)
-              return <p key={i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></p>
-          } else if (delayIdx > 0) {
-            let delay = 1000
-            let matched = op.match(delayRe)
-            if (matched && matched[1]) delay = parseInt(matched[1]) * 1000
+          if (self.state.inlineInput && inputIdx > 0) {
+            var msg = op.substr(0, inputIdx)
+            return <p key={'inlineinput-'+i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></p>
+          } else if (self.state.lookingBusy && delayIdx > 0) {
             let msg = op.substr(0, delayIdx)
-            setTimeout(self.handleDelay,delay)
-            return <p key={i}>{msg}<Spinner/></p>
+            console.log('394: ' + op)
+            //setTimeout(self.handleDelay, delay)
+            return <p key={'delayed-'+i}>{msg}<Spinner/></p>
           } else {
-              var outputClass
-              //if (op.indexOf("~ ") == 0) {
-              //    outputClass = "waiting"
-              //    op = op.replace("~ ", "")
-              //    op += "..."
-              //    if (this.state.waiting) {
-              //        return <p key={i} className={outputClass}>{op}<span className="show loading"></span></p>
-              //    } else {
-              //        op += " done."
-              //    }
-              //}
-              //if (op.indexOf("!") == 0) { outputClass = "error" }
-              //if (op.indexOf("sh: ") == 0) { outputClass = "error" }
-              //if (op.indexOf("* ") == 0) { outputClass = "suggestion"; op = op.replace("* ", "") }
-              //if (op.indexOf("✓ ") == 0) { outputClass = "success"; op = op.replace("✓ ", "") }
-              return <Output key={i} className={outputClass}>{op}</Output>
+            return <Output key={'output-'+i}>{op}</Output>
           }
       }, this);
       if (this.state.inlineInput == true || this.state.waiting) {
