@@ -206,7 +206,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   render() {
-    return <Box gridArea={this.props.gridArea} fill={true} direction="column">
+    return <Box gridArea={this.props.gridArea} fill={true} direction="column" overflow={{"vertical": "auto", "horizontal": "hidden"}}>
       {this.state.outputOptions && this.state.outputOptions.length > 0 && (
         <Layer onEsc={this.hideAdd} full={true}>
           <Heading>Choose the correct output to send:</Heading>
@@ -224,7 +224,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
               <NewCmd onChange={event => this.setState({newCmd: event.target.value})}/>
             </FormField>
             <FormField label="Command output">
-              <NewOutput onChange={event => this.setState({newOutput: event.target.value})}/>
+              <NewOutput onChange={event => this.setState({newOutput: event.target.value})} />
             </FormField>
             <Box direction="row-reverse">
               <Button primary label="Add command" onClick={this.addCommand}/>

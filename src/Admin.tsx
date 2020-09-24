@@ -6,19 +6,22 @@ import Notepad from "./Notepad"
 import Output from "./Output"
 import { RealtimeClient } from "./WebRTCHost";
 import styled from "styled-components";
+import replacePlaceholders from "./placeholders"
 import { theme } from "./Theme"
 
-const Command = styled.p`
+const Command = styled.pre`
   font-family: ${theme['code-font-family']};
   font-size: ${theme['font-size']};
+  white-space: pre-wrap;
 
   &:before {
     content: '$ '
   }
 `
-const CommandOutput = styled.p`
+const CommandOutput = styled.pre`
   font-family: ${theme['code-font-family']};
   font-size: ${theme['font-size']};
+  white-space: pre-wrap;
 `
 interface LoginPromptParams {
   password: string
@@ -93,7 +96,7 @@ class Admin extends React.Component<{}, State> {
 
   newOutput(out) {
     let history = this.state.history
-    history.push({type: 'output', display: out})
+    history.push({type: 'output', display: replacePlaceholders(out)})
     this.setState({
       history: history
     })

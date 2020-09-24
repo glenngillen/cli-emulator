@@ -2,11 +2,11 @@ import React from 'react'
 import { RealtimeClient } from "./WebRTCHost";
 import { Box } from "grommet"
 import styled from "styled-components";
+import replacePlaceholders from "./placeholders"
 import { theme } from "./Theme";
+import Spinner from "./Spinner";
 
-const Spin = styled.span`
-  white-space: pre;
-`
+const delayRe = /:delay[_]?([0-9]{1,2})?:/
 const InputArea = styled.div`
   height: 100%;
   padding: 20px;
@@ -32,6 +32,14 @@ const Prompt = styled.span`
   font-weight: normal;
 `
 
+const Output = styled.p`
+  white-space: pre;
+  font-family: ${theme['code-font-family']};
+  font-size: ${theme['font-size']};
+  font-weight: normal;
+  color: white;
+
+`
 const Input = styled.input`
   font-family: ${theme['code-font-family']};
   font-size: ${theme['font-size']};
@@ -50,6 +58,9 @@ const Input = styled.input`
     outline: none;
   }
 `
+const InlineInput = styled(Input)`
+  width: 12em;
+`
 
 interface State {
   client: any,
@@ -63,33 +74,7 @@ interface State {
   connected: boolean,
 }
 
-interface SpinnerState {
-  step: number
-}
-class Spinner extends React.Component<{}, SpinnerState> {
-  frames: Array<string>
-  intervalId?: NodeJS.Timeout
 
-  constructor(props) {
-    super(props)
-    this.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-    this.state = { step: 0 }
-  }
-  componentDidMount() {
-    this.intervalId = setInterval(() => {
-      let nextStep = this.state.step == (this.frames.length - 1) ? 0 : this.state.step + 1
-      this.setState({ step: nextStep })
-    }, 80)
-  }
-  componentWillUnmount() {
-    if (this.intervalId) clearInterval(this.intervalId)
-  }
-  render() {
-    return <Spin>
-      {this.frames[this.state.step]}   
-    </Spin>
-  }
-}
 interface PasswordProps {
   login: any
 }
@@ -147,7 +132,7 @@ class PasswordPrompt extends React.Component<PasswordProps, PasswordState> {
     }
     let content : JSX.Element
     if (this.state.connected) {
-      content = <p>Logged in!</p>
+      content = <p>✅ Logged in! <Spinner/></p>
     } else {
       content = <p>Password: {!this.state.connecting && field}{this.state.connecting && <Spinner/>}</p>
     }
@@ -188,6 +173,10 @@ class Terminal extends React.Component<{}, State> {
     this.connect = this.connect.bind(this)
     this.login = this.login.bind(this)
     this.send = this.send.bind(this)
+    this.handleInline = this.handleInline.bind(this)
+    this.handleDelay = this.handleDelay.bind(this)
+    this.updateWaitState = this.updateWaitState.bind(this)
+    this.lastResponse = this.lastResponse.bind(this)
   }
   connect(password:string, cb) {
     this.state.client.connect(password, cb)
@@ -198,13 +187,40 @@ class Terminal extends React.Component<{}, State> {
   send(message: string) {
     this.state.client.command(message)
   }
+  lastResponse() {
+    return this.state.history[this.state.history.length -1]
+  }
+  updateWaitState() {
+    let last = this.lastResponse()
+    if (last.indexOf(":input:") > 0 || last.search(delayRe) > 0) {
+      let inlineState = last.indexOf(":input:") > 0 
+      this.setState({
+        waiting: true,
+        inlineInput: inlineState
+      })
+    } else {
+      this.setState({
+        waiting: false,
+        inlineInput: false
+      })
+    }
+  }
   processResponse(output) {
-      this.setState({ waiting: false })
+    let processed = replacePlaceholders(output)
+    if (processed.indexOf(":input:") >= 0) {
+      this.setState({ inlineInput: true })
+      this.addHistory(processed)
+      this.handleFocus()
+    } else if (processed.search(delayRe) > 0) {
+      this.addHistory(processed)
+    } else {
       if (output) {
-        this.addHistory(output)
+        this.addHistory(processed)
       }
       this.addHistory("")
       this.handleFocus()
+    }
+    this.updateWaitState()
   }
   componentDidMount() {
       this.handleFocus();
@@ -239,6 +255,26 @@ class Terminal extends React.Component<{}, State> {
       }
     })
   }
+  handleDelay() {
+    var history = this.state.history;
+    let latest = history[history.length - 1] 
+    latest = latest.replace(delayRe, "") 
+    history[history.length - 1] = latest
+    this.setState({
+      history: history,
+    });
+    this.updateWaitState()
+  }
+  handleInline(response) {
+    var history = this.state.history;
+    let latest = history[history.length - 1] 
+    latest = latest.replace(":input:", response)
+    history[history.length - 1] = latest
+    this.setState({
+      history: history,
+    });
+    this.updateWaitState()
+  }
   handleInput(e) {
     if (!this.state.connected) return
       if (e.key === "Enter") {
@@ -246,7 +282,7 @@ class Terminal extends React.Component<{}, State> {
           this.send(input_text)
           if (this.state.inlineInput) {
               this.setState({ inlineInput: false })
-              //this.handleInline.apply(this, [input_text])
+              this.handleInline(input_text)
           } else {
               var input_array = input_text.split(' ', );
               var input = input_array[0];
@@ -341,10 +377,20 @@ class Terminal extends React.Component<{}, State> {
     }
   }
   render() {
+    let self = this
       var output = this.state.history.map(function(op, i) {
-          if (false) { //(this.state.inlineInput && op.indexOf(":input:") > 0) {
-              //var msg = op.replace(":input:", "")
-              //return <p key={i}>{msg}<input type="text" onKeyPress={this.handleInput} ref={(ref) => this.term = ref} className="inline term"/></p>
+          let inputIdx = op.indexOf(":input:") 
+          let delayIdx = op.search(delayRe)
+          if (self.state.inlineInput && inputIdx > 0 && (delayIdx == -1 || inputIdx < delayIdx)) {
+              var msg = op.substr(0, inputIdx)
+              return <p key={i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></p>
+          } else if (delayIdx > 0) {
+            let delay = 1000
+            let matched = op.match(delayRe)
+            if (matched && matched[1]) delay = parseInt(matched[1]) * 1000
+            let msg = op.substr(0, delayIdx)
+            setTimeout(self.handleDelay,delay)
+            return <p key={i}>{msg}<Spinner/></p>
           } else {
               var outputClass
               //if (op.indexOf("~ ") == 0) {
@@ -361,7 +407,7 @@ class Terminal extends React.Component<{}, State> {
               //if (op.indexOf("sh: ") == 0) { outputClass = "error" }
               //if (op.indexOf("* ") == 0) { outputClass = "suggestion"; op = op.replace("* ", "") }
               //if (op.indexOf("✓ ") == 0) { outputClass = "success"; op = op.replace("✓ ", "") }
-              return <p key={i} className={outputClass}>{op}</p>
+              return <Output key={i} className={outputClass}>{op}</Output>
           }
       }, this);
       if (this.state.inlineInput == true || this.state.waiting) {
