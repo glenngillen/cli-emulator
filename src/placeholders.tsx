@@ -19,9 +19,9 @@ const replaceOptions = (text) => {
 }
 const replacePlaceholders = (text) => {
   console.log(text)
-  text = text.replace(":success:", "✅")
-  text = text.replace(":error:","❗️")
-  text = text.replace(":alert:","⚠️")
+  text = text.replaceAll(":success:", "✅")
+  text = text.replaceAll(":error:","❗️")
+  text = text.replaceAll(":alert:","⚠️")
   text = replaceOptions(text)
   return text
 }
