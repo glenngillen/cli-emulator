@@ -145,7 +145,10 @@ class PasswordPrompt extends React.Component<PasswordProps, PasswordState> {
     )
   }
 }
-class Terminal extends React.Component<{}, State> {
+interface TermProps {
+  updated?: any
+}
+class Terminal extends React.Component<TermProps, State> {
   term: any
   constructor(props) {
     super(props)
@@ -179,6 +182,7 @@ class Terminal extends React.Component<{}, State> {
     this.updateWaitState = this.updateWaitState.bind(this)
     this.lastResponse = this.lastResponse.bind(this)
     this.updateState = this.updateState.bind(this)
+    this.updateContainer = this.updateContainer.bind(this)
   }
   connect(password:string, cb) {
     this.state.client.connect(password, cb)
@@ -259,9 +263,16 @@ class Terminal extends React.Component<{}, State> {
     }
     this.updateWaitState(newState)
   }
+  updateContainer() {
+    if (this.props.updated) this.props.updated()
+  }
   componentDidMount() {
       this.handleFocus();
       this.state.client.subscribeOutput(this.processResponse)
+      this.updateContainer()
+  }
+  componentDidUpdate() {
+    this.updateContainer()
   }
   handleKey(e) {
     switch(e.which) {
