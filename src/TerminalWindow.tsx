@@ -1,5 +1,4 @@
 import React from "react";
-import { animateScroll } from "react-scroll"
 import styled from "styled-components"
 
 import Window from './Window'

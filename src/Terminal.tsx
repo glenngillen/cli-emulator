@@ -114,7 +114,7 @@ class PasswordPrompt extends React.Component<PasswordProps, PasswordState> {
   }
   handlePassword(e) {
     if (e.key === "Enter") { 
-      let password = e.target.value
+      let password = e.target.value.replace(/[^a-zA-Z0-9]/g, "-")
       this.setState({
         connecting: true
       })
