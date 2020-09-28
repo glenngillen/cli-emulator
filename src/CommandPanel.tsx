@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Button, Anchor, Footer, Layer, FormField, TextInput, TextArea, Grid, Heading } from "grommet";
 import { Trash, Edit } from 'grommet-icons';
 import styled, { keyframes } from "styled-components";
+import FileSaver from 'file-saver'
 import { theme } from "./Theme";
 
 interface PanelProps {
@@ -105,6 +106,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.sendOption = this.sendOption.bind(this)
     this.editCommand = this.editCommand.bind(this)
     this.saveCommand = this.saveCommand.bind(this)
+    this.export = this.export.bind(this)
   }
 
   showAdd() {
@@ -249,6 +251,10 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     }
   }
 
+  export() {
+    var blob = new Blob([JSON.stringify(this.state.cmds)], {type:"application/json;charset=utf-8"})
+    FileSaver.saveAs(blob, "cli-commands.json")
+  } 
   sendOption(ev) {
     this.setState({
       outputOptions: []
@@ -316,6 +322,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       </Box>
       <Footer pad="small" align="end" direction="row-reverse">
         <Button primary alignSelf="end" label="Add new command" onClick={this.showAdd}/>
+        <Button label="Export" onClick={this.export}/>
       </Footer>
     </Box>
   }

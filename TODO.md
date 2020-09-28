@@ -5,8 +5,8 @@
 - [x] Connected success on admin
 - [x] Make URLs clickable
 - [x] Password validation on client side
-- [ ] Lazy initial connect
-- [ ] Retry connection on password
+- [x] Lazy initial connect
+- [x] Retry connection on password
 - [ ] Export command list
 - [ ] Import command list
 - [ ] Add a password input type

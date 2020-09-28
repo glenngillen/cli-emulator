@@ -31,7 +31,7 @@ class LoginPrompt extends React.Component<LoginPromptParams> {
   render() { 
     return <Box>
     <CommandOutput>
-      Have the other person enter the following password at the prompt: {this.props.password}
+      Have the participant enter the following password at the prompt: {this.props.password}
     </CommandOutput>
     <Button primary label="New session" onClick={this.props.resetPassword}/>
     </Box>
@@ -58,7 +58,7 @@ class Admin extends React.Component<{}, State> {
     this.personConnected = this.personConnected.bind(this)
     this.sendOutput = this.sendOutput.bind(this)
     this.newOutput = this.newOutput.bind(this)
-    
+
     this.state = {
       client: new RealtimeClient(this.personConnected),
       history: []

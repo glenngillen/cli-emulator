@@ -32,7 +32,6 @@ class RealtimeClient {
     this.subscribeOutput = this.subscribeOutput.bind(this)
 
     if (personConnectedCb) this.connectCb = personConnectedCb
-
   }
   disconnect() {
     if (!this.connected) return
@@ -49,6 +48,7 @@ class RealtimeClient {
     this.initializing = false
     this.queuedStdinCbs = []
     this.queuedStdoutCbs = []
+    pusher.connect()
     let channel = pusher.subscribe(this.channelName())
     this.channel = channel 
     let self = this
