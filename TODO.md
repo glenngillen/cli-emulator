@@ -3,6 +3,7 @@
 - [x] Numbers as inputs
 - [x] Ensure client scrolls to bottom constantly
 - [ ] Connected success on admin
+- [x] Make URLs clickable
 - [ ] Password validation on client side
 - [ ] Lazy initial connect
 - [ ] Retry connection on password
@@ -11,6 +12,7 @@
 - [ ] Add a password input type
 - [ ] Add Ctrl+C to client
 - [ ] Record client screen
+- [ ] Tab completion
 - [ ] Fix placeholder formatting in admin
 - [ ] Pre-password supplied link
 - [ ] Welcome screen

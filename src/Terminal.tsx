@@ -1,11 +1,15 @@
 import React from 'react'
 import { RealtimeClient } from "./WebRTCHost";
 import { Box } from "grommet"
+import Linkify from 'react-linkify'
 import styled from "styled-components";
 import replacePlaceholders from "./placeholders"
 import { theme } from "./Theme";
 import Spinner from "./Spinner";
 
+const linkDecorator = (href, text, key) => {
+  return <a href={href} key={key} target="_blank">{text}</a>
+}
 const delayRe = /:delay[_]?([0-9]{1,2})?:/
 const InputArea = styled.div`
   height: 100%;
@@ -38,6 +42,14 @@ const Output = styled.p`
   font-size: ${theme['font-size']};
   font-weight: normal;
   color: white;
+
+  a {
+    color: #e0d5ff;
+
+    &:visited, &:active, &:hover {
+      color: #e0d5ff;
+    }
+  }
 
 `
 const Input = styled.input`
@@ -197,7 +209,6 @@ class Terminal extends React.Component<TermProps, State> {
     return this.state.history[this.state.history.length -1]
   }
   updateWaitState(extraState?) {
-    console.log('updating wait state')
     let last = this.lastResponse()
     let inputIdx = last.indexOf(":input:") 
     let delayIdx = last.search(delayRe)
@@ -240,7 +251,6 @@ class Terminal extends React.Component<TermProps, State> {
         lookingBusy: false
       }
     }
-    console.log(waitState)
     this.updateState({
       ...extraState, ...waitState
     })
@@ -304,10 +314,8 @@ class Terminal extends React.Component<TermProps, State> {
     })
   }
   handleDelay() {
-    console.log('handle delay')
     var history = this.state.history;
     let latest = history[history.length - 1] 
-    console.log(latest)
     latest = latest.replace(delayRe, "") 
     history[history.length - 1] = latest
     this.setState({ lookingBusy: false}, () => {
@@ -427,22 +435,21 @@ class Terminal extends React.Component<TermProps, State> {
   }
    render() {
     let self = this
-      var output = this.state.history.map(function(op, i) {
-        console.log(op)
+      var output = <Linkify componentDecorator={linkDecorator} properties={{}}>{
+        this.state.history.map(function(op, i) {
           let inputIdx = op.indexOf(":input:") 
           let delayIdx = op.search(delayRe)
           if (self.state.inlineInput && inputIdx > 0) {
             var msg = op.substr(0, inputIdx)
-            return <p key={'inlineinput-'+i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></p>
+            return <Output key={'inlineinput-'+i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></Output>
           } else if (self.state.lookingBusy && delayIdx > 0) {
             let msg = op.substr(0, delayIdx)
-            console.log('394: ' + op)
             //setTimeout(self.handleDelay, delay)
-            return <p key={'delayed-'+i}>{msg}<Spinner/></p>
+            return <Output key={'delayed-'+i}>{msg}<Spinner/></Output>
           } else {
             return <Output key={'output-'+i}>{op}</Output>
           }
-      }, this);
+      }, this)}</Linkify>
       if (this.state.inlineInput == true || this.state.waiting) {
           return (
             <InputArea onClick={this.handleClick}>
