@@ -11,6 +11,7 @@ const linkDecorator = (href, text, key) => {
   return <a href={href} key={key} target="_blank">{text}</a>
 }
 const delayRe = /:delay[_]?([0-9]{1,2})?:/
+const inputRe = /(:input:|:password:)/
 const InputArea = styled.div`
   height: 100%;
   padding: 20px;
@@ -210,7 +211,7 @@ class Terminal extends React.Component<TermProps, State> {
   }
   updateWaitState(extraState?) {
     let last = this.lastResponse()
-    let inputIdx = last.indexOf(":input:") 
+    let inputIdx = last.search(inputRe) 
     let delayIdx = last.search(delayRe)
     let waitState = {}
     let delay = 1000
@@ -258,7 +259,7 @@ class Terminal extends React.Component<TermProps, State> {
   processResponse(output) {
     let newState = {}
     let processed = replacePlaceholders(output)
-    if (processed.indexOf(":input:") >= 0) {
+    if (processed.search(inputRe) >= 0) {
       newState = { inlineInput: true }
       this.addHistory(processed)
       this.handleFocus()
@@ -325,7 +326,9 @@ class Terminal extends React.Component<TermProps, State> {
   handleInline(response) {
     var history = this.state.history;
     let latest = history[history.length - 1] 
-    latest = latest.replace(":input:", response)
+    let matched = latest.match(inputRe)
+    if (matched && matched[1] === ":password:") response = response.replace(/./g,"*")
+    latest = latest.replace(inputRe, response)
     history[history.length - 1] = latest
     this.updateWaitState({ history: history })
   }
@@ -437,11 +440,13 @@ class Terminal extends React.Component<TermProps, State> {
     let self = this
       var output = <Linkify componentDecorator={linkDecorator} properties={{}}>{
         this.state.history.map(function(op, i) {
-          let inputIdx = op.indexOf(":input:") 
+          let inputIdx = op.search(inputRe) 
           let delayIdx = op.search(delayRe)
           if (self.state.inlineInput && inputIdx > 0) {
             var msg = op.substr(0, inputIdx)
-            return <Output key={'inlineinput-'+i}>{msg}<InlineInput type="text" onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></Output>
+            let isPassword = op.substr(inputIdx, 10) === ":password:"
+
+            return <Output key={'inlineinput-'+i}>{msg}<InlineInput type={isPassword ? "password" : "text"} onKeyPress={self.handleInput} ref={(ref) => self.term = ref} /></Output>
           } else if (self.state.lookingBusy && delayIdx > 0) {
             let msg = op.substr(0, delayIdx)
             //setTimeout(self.handleDelay, delay)

@@ -8,7 +8,6 @@ const replaceOptions = (text) => {
     if (blankIdx === -1 && optIdx > 0) {
       text = replaceOptions(text)
     } else if ((blankIdx+curIdx) < optIdx || optIdx === -1) {
-      console.log(text)
       text = [text.slice(0, blankIdx+curIdx), ":input:", text.slice(blankIdx+curIdx)].join('')
     } else if (blankIdx === -1 && optIdx === -1) {
       text = text + ":input:"
@@ -18,7 +17,6 @@ const replaceOptions = (text) => {
   return text
 }
 const replacePlaceholders = (text) => {
-  console.log(text)
   text = text.replaceAll(":success:", "✅")
   text = text.replaceAll(":error:","❗️")
   text = text.replaceAll(":alert:","⚠️")
