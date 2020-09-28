@@ -2,9 +2,9 @@
 
 - [x] Numbers as inputs
 - [x] Ensure client scrolls to bottom constantly
-- [ ] Connected success on admin
+- [x] Connected success on admin
 - [x] Make URLs clickable
-- [ ] Password validation on client side
+- [x] Password validation on client side
 - [ ] Lazy initial connect
 - [ ] Retry connection on password
 - [ ] Export command list

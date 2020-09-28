@@ -50,16 +50,23 @@ class Admin extends React.Component<{}, State> {
   commandPanel: any
   constructor(props) {
     super(props)
-    this.state = {
-      client: new RealtimeClient(),
-      history: []
-    }
-
     this.componentDidMount = this.componentDidMount.bind(this)
     this.getSessionPassword = this.getSessionPassword.bind(this)
     this.newUserInput = this.newUserInput.bind(this)
     this.resetPassword = this.resetPassword.bind(this)
     this.connect = this.connect.bind(this)
+    this.personConnected = this.personConnected.bind(this)
+    this.sendOutput = this.sendOutput.bind(this)
+    this.newOutput = this.newOutput.bind(this)
+    
+    this.state = {
+      client: new RealtimeClient(this.personConnected),
+      history: []
+    }
+
+  }
+  personConnected(member) {
+    this.newOutput('🤝 Participant connected')
   }
   getSessionPassword() {
     if (!window.localStorage.getItem('password')) {

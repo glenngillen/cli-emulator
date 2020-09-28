@@ -15,13 +15,24 @@ class RealtimeClient {
   connected:boolean
   queuedStdinCbs: Array<Function>
   queuedStdoutCbs: Array<Function>
+  connectCb: any
 
-  constructor() {
+  constructor(personConnectedCb?:any) {
     pusher.bind_global((event, data) => { if (event === 'pusher:error') console.error(data)})
     this.initializing = false
     this.connected = false
     this.queuedStdinCbs = []
     this.queuedStdoutCbs = []
+
+    this.connect = this.connect.bind(this)
+    this.members = this.members.bind(this)
+    this.command = this.command.bind(this)
+    this.output = this.output.bind(this)
+    this.subscribeInput = this.subscribeInput.bind(this)
+    this.subscribeOutput = this.subscribeOutput.bind(this)
+
+    if (personConnectedCb) this.connectCb = personConnectedCb
+
   }
   disconnect() {
     if (!this.connected) return
@@ -54,6 +65,12 @@ class RealtimeClient {
       self.connected = true
     });
 
+    if (this.connectCb) {
+      let self = this
+      this.channel.bind('pusher:member_added', (member) => {
+        self.connectCb(member)
+      })
+    }
   }
   members() {
     return this?.channel?.members?.count
