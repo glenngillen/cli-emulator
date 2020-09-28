@@ -3,6 +3,7 @@ import { RealtimeClient } from "./WebRTCHost";
 import { Box } from "grommet"
 import Linkify from 'react-linkify'
 import styled from "styled-components";
+import keydown from 'react-keydown'
 import replacePlaceholders from "./placeholders"
 import { theme } from "./Theme";
 import Spinner from "./Spinner";
@@ -162,6 +163,7 @@ interface TermProps {
   updated?: any
 }
 class Terminal extends React.Component<TermProps, State> {
+
   term: any
   constructor(props) {
     super(props)
@@ -177,6 +179,7 @@ class Terminal extends React.Component<TermProps, State> {
       inlineInput: false,
       connected: false
     }
+    this.handleCtrlC = this.handleCtrlC.bind(this)
     this.handleClick = this.handleClick.bind(this)
     this.handleFocus = this.handleFocus.bind(this)
     this.handleInput = this.handleInput.bind(this)
@@ -298,7 +301,14 @@ class Terminal extends React.Component<TermProps, State> {
         break;
     }
   }
-
+  @keydown('ctrl+c')
+  handleCtrlC(ev) {
+    this.addHistory("^C: Command Canceled")
+    this.updateState({
+      waiting: false,
+      inlineInput: false
+    })
+  }
   login(password, cb) {
     this.connect(password, () => {
       let loggedIn = this.state.client.members() >= 2 ? true : false
@@ -457,7 +467,7 @@ class Terminal extends React.Component<TermProps, State> {
       }, this)}</Linkify>
       if (this.state.inlineInput == true || this.state.waiting) {
           return (
-            <InputArea onClick={this.handleClick}>
+            <InputArea onClick={this.handleClick} onKeyDown={this.handleCtrlC} tabIndex={0}>
               {output}
             </InputArea>
           )

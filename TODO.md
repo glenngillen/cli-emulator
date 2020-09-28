@@ -9,7 +9,7 @@
 - [x] Retry connection on password
 - [x] Export command list
 - [x] Import command list
-- [ ] Add a password input type
+- [x] Add a password input type
 - [ ] Add Ctrl+C to client
 - [ ] Record client screen
 - [ ] Tab completion
