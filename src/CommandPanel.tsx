@@ -5,6 +5,9 @@ import styled, { keyframes } from "styled-components";
 import FileSaver from 'file-saver'
 import { theme } from "./Theme";
 
+const generateId = () => {
+  return Math.random().toString(36).substr(2)
+}
 interface PanelProps {
   gridArea?: string
   admin: any
@@ -92,7 +95,31 @@ const NewOutput = styled(TextArea)`
   overflow: auto;
   height: 300px;
 `
+const HiddenFile = styled.input`
+  display: none;
+`
+interface UploadProps {
+  onUpload: any
+}
+class UploadButton extends React.Component<UploadProps> {
+  fileField: any
+
+  constructor(props) {
+    super(props)
+    this.click = this.click.bind(this)
+  }
+  click() {
+    this.fileField.click()
+  }
+  render() {
+    return <span>
+      <HiddenFile type="file" accept=".json" onChange={this.props.onUpload} ref={(ref) => this.fileField = ref } />
+      <Button label="Import" onClick={this.click}/>
+    </span>
+  }
+}
 class CommandPanel extends React.Component<PanelProps, PanelState> {
+  importField: any
   constructor(props) {
     super(props)
     this.state = { showAdd: false, cmds: [] }
@@ -107,6 +134,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.editCommand = this.editCommand.bind(this)
     this.saveCommand = this.saveCommand.bind(this)
     this.export = this.export.bind(this)
+    this.import = this.import.bind(this)
   }
 
   showAdd() {
@@ -117,20 +145,27 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.setState({ showAdd: false })
   }
 
-  loadCommands() {
+  loadCommands(cmds?: Array<MatchedCommand>) {
     let storedCmds = window.localStorage.getItem('cmds')
-    let cmds: Array<MatchedCommand> = []
+    if (!cmds) cmds = []
     if (storedCmds) {
       let data = JSON.parse(storedCmds)
+      data = data.filter(d => {
+        return !cmds?.some(c => { return c.id === d.id})
+      })
       data.forEach(element => {
-        cmds.push({cmd: element.cmd, output: element.output})
+        cmds?.push({cmd: element.cmd, output: element.output})
       })
     }
     this.setState({ cmds: cmds })
   }
   saveCommands() {
     let cmds = this.state.cmds
+    cmds.forEach(cmd => {
+      if (!cmd.id) cmd.id = generateId()
+    })
     window.localStorage.setItem('cmds', JSON.stringify(cmds))
+    this.setState({cmds: cmds})
   }
 
   processInput(cmd) {
@@ -181,7 +216,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   addCommand() {
     let cmds = this.state.cmds
     if (this.state.newCmd && this.state.newOutput) {
-      cmds.push({id: Math.random().toString(36).substr(2), cmd: this.state.newCmd, output: this.state.newOutput})
+      cmds.push({id: generateId(), cmd: this.state.newCmd, output: this.state.newOutput})
     }
     this.setState({
       cmds: cmds,
@@ -252,9 +287,28 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   }
 
   export() {
+    this.saveCommands()
     var blob = new Blob([JSON.stringify(this.state.cmds)], {type:"application/json;charset=utf-8"})
     FileSaver.saveAs(blob, "cli-commands.json")
   } 
+  import(ev) {
+    ev.persist()
+    let self = this
+    const reader = new FileReader()
+    reader.onload = async (e) => { 
+      let json = (e?.target?.result)?.toString()
+      if (json) {
+        let data = JSON.parse(json)
+        let cmds: Array<MatchedCommand>
+        cmds = []
+        data.forEach(d => {
+          cmds.push(d)
+        })
+        if (cmds) self.loadCommands(cmds)
+      }
+    };
+    reader.readAsText(ev.target.files[0])
+  }
   sendOption(ev) {
     this.setState({
       outputOptions: []
@@ -306,7 +360,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       )}
       <Box flex="grow">
         {this.state.cmds.map((item, idx) => (
-          <Grid columns={['small','flex','xsmall']} areas={[['cmd','output','icon']]} gap="none" pad="none" >
+          <Grid key={"gcmd-"+idx} columns={['small','flex','xsmall']} areas={[['cmd','output','icon']]} gap="none" pad="none" >
             <Cmd gridArea="cmd" className={item.active ? 'active' : ''}>
               {item.cmd}
             </Cmd>
@@ -322,6 +376,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       </Box>
       <Footer pad="small" align="end" direction="row-reverse">
         <Button primary alignSelf="end" label="Add new command" onClick={this.showAdd}/>
+        <UploadButton onUpload={this.import}/>
         <Button label="Export" onClick={this.export}/>
       </Footer>
     </Box>

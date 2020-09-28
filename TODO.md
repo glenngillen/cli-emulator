@@ -7,8 +7,8 @@
 - [x] Password validation on client side
 - [x] Lazy initial connect
 - [x] Retry connection on password
-- [ ] Export command list
-- [ ] Import command list
+- [x] Export command list
+- [x] Import command list
 - [ ] Add a password input type
 - [ ] Add Ctrl+C to client
 - [ ] Record client screen
