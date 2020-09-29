@@ -10,14 +10,14 @@
 - [x] Export command list
 - [x] Import command list
 - [x] Add a password input type
-- [ ] Add Ctrl+C to client
+- [x] Add Ctrl+C to client
 - [ ] Record client screen
 - [ ] Tab completion
 - [ ] Fix placeholder formatting in admin
 - [ ] Pre-password supplied link
 - [ ] Welcome screen
 - [ ] Unattanded session support
-- [ ] Terraform Config
+- [ ] Terraform Config to deploy everything
 - [ ] Deployable to AWS
 - [ ] Replace Pusher with actual web sockets on AWS
 

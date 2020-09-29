@@ -172,7 +172,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     let matchedIx : Array<number>
     matchedIx = []
     let matched = this.state.cmds.filter((item, idx) => {
-      if (cmd === item.cmd) {
+      if (cmd.toString() === item.cmd) {
         matchedIx.push(idx)
         return true
       } else if (item.cmd.match(/^\/.+\/([gimy]*)$/)) {
@@ -305,6 +305,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
           cmds.push(d)
         })
         if (cmds) self.loadCommands(cmds)
+        self.saveCommands()
       }
     };
     reader.readAsText(ev.target.files[0])
@@ -321,7 +322,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       {this.state.outputOptions && this.state.outputOptions.length > 0 && (
         <Layer onEsc={this.hideAdd} full={true}>
           <Heading>Choose the correct output to send:</Heading>
-          <Box pad="medium">
+          <Box pad="medium" overflow="auto">
             {this.state.outputOptions.map(opt => {
               return <OutputOption pad="medium" gap="medium" onClick={this.sendOption}>{opt.output}</OutputOption>
             })}
