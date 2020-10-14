@@ -18,7 +18,7 @@ class Spinner extends React.Component<{}, SpinnerState> {
   }
   componentDidMount() {
     this.intervalId = setInterval(() => {
-      let nextStep = this.state.step == (this.frames.length - 1) ? 0 : this.state.step + 1
+      let nextStep = this.state.step === (this.frames.length - 1) ? 0 : this.state.step + 1
       this.setState({ step: nextStep })
     }, 80)
   }

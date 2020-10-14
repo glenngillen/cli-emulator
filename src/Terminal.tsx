@@ -7,6 +7,7 @@ import keydown from 'react-keydown'
 import replacePlaceholders from "./placeholders"
 import { theme } from "./Theme";
 import Spinner from "./Spinner";
+import CommandMatcher from "./CommandMatcher"
 
 const linkDecorator = (href, text, key) => {
   return <a href={href} key={key} target="_blank">{text}</a>
@@ -78,7 +79,6 @@ const InlineInput = styled(Input)`
 
 interface State {
   client: any,
-  commands: {},
   history: Array<string>,
   cmdHistory: Array<string>,
   cmdPos: -1,
@@ -87,6 +87,9 @@ interface State {
   inlineInput: boolean,
   connected: boolean,
   lookingBusy?: boolean
+  interactive: boolean
+  nonInteractiveCommands?: any,
+  commandsLoaded: boolean
 }
 
 
@@ -159,6 +162,34 @@ class PasswordPrompt extends React.Component<PasswordProps, PasswordState> {
     )
   }
 }
+interface CommandProps {
+  gist: string
+}
+
+class NonInteractiveCommands {
+  gist: string
+  commands: any
+  constructor(gist, loadedCb?: any) {
+    this.gist = gist
+    let self = this
+    fetch('https://gist.githubusercontent.com/' + gist + '/raw').then(json => {
+      json.json().then(result => {
+        self.commands = result
+        if (loadedCb) loadedCb()
+      })
+    })
+  }
+
+  welcome() {
+    let welcome = this.command('welcome')
+    if (welcome) return welcome.output
+  }
+
+  command(cmd) {
+    let [matched] = CommandMatcher(this.commands, cmd)
+    return matched[0]
+  }
+}
 interface TermProps {
   updated?: any
 }
@@ -167,18 +198,33 @@ class Terminal extends React.Component<TermProps, State> {
   term: any
   constructor(props) {
     super(props)
-    let client = new RealtimeClient();
+    let client : any
+    let interactive = true
+    let connected = false
+    let nonInteractiveCommands : any
+    let query = new URLSearchParams(window.location.search);
+    let gist = query.get('g')
+    if (gist) {
+      interactive = false
+      connected = true
+      nonInteractiveCommands = new NonInteractiveCommands(gist, this.commandsLoaded.bind(this))
+    } else {
+      client = new RealtimeClient();
+    }
     this.state = {
       client: client,
-      commands: {},
       history: [],
       cmdHistory: [],
       cmdPos: -1,
       prompt: '$ ',
       waiting: false,
       inlineInput: false,
-      connected: false
+      connected: connected,
+      interactive: interactive,
+      nonInteractiveCommands: nonInteractiveCommands,
+      commandsLoaded: false
     }
+    this.commandsLoaded = this.commandsLoaded.bind(this)
     this.handleCtrlC = this.handleCtrlC.bind(this)
     this.handleClick = this.handleClick.bind(this)
     this.handleFocus = this.handleFocus.bind(this)
@@ -200,14 +246,44 @@ class Terminal extends React.Component<TermProps, State> {
     this.updateState = this.updateState.bind(this)
     this.updateContainer = this.updateContainer.bind(this)
   }
+  commandsLoaded() {
+    this.setState({
+      commandsLoaded: true
+    })
+    if (!this.state.interactive) {
+      let welcome = this.state.nonInteractiveCommands.welcome()
+      if (welcome) {
+        this.processResponse(welcome)
+      }
+    } 
+  }
   connect(password:string, cb) {
-    this.state.client.connect(password, cb)
+    if (this.state.interactive) this.state.client.connect(password, cb)
   }
   clearHistory() {
-      this.updateState({ history: [] });
+    this.updateState({ history: [] });
   }
   send(message: string) {
-    this.state.client.command(message)
+    if (this.state.interactive) {
+      this.state.client.command(message)
+    } else {
+      let self = this
+      setTimeout(() => {
+        let output : any
+        try {
+          output = self.state.nonInteractiveCommands.command(message)
+        } catch {
+          output = { output: 'command not found' }
+        }
+        let stdout : any
+        if (output) {
+          stdout = output.output
+        } else {
+          stdout = "command not found"
+        }
+        self.processResponse(stdout)
+      }, 1000)
+    }
   }
   lastResponse() {
     return this.state.history[this.state.history.length -1]
@@ -282,7 +358,9 @@ class Terminal extends React.Component<TermProps, State> {
   }
   componentDidMount() {
       this.handleFocus();
-      this.state.client.subscribeOutput(this.processResponse)
+      if (this.state.interactive) {
+        this.state.client.subscribeOutput(this.processResponse) 
+      } 
       this.updateContainer()
   }
   componentDidUpdate() {
@@ -353,9 +431,6 @@ class Terminal extends React.Component<TermProps, State> {
           } else {
               var input_array = input_text.split(' ', );
               var input = input_array[0];
-              var arg = input_array.slice(1).join(' ')
-              var command = this.state.commands[input];
-
               this.addHistory(this.state.prompt + " " + input_text);
               this.addCommandHistory(input_text)
               this.updateState({

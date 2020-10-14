@@ -4,6 +4,7 @@ import { Trash, Edit } from 'grommet-icons';
 import styled, { keyframes } from "styled-components";
 import FileSaver from 'file-saver'
 import { theme } from "./Theme";
+import CommandMatcher from "./CommandMatcher"
 
 const generateId = () => {
   return Math.random().toString(36).substr(2)
@@ -24,7 +25,8 @@ interface PanelState {
   newOutput?: string
   cmds: Array<MatchedCommand>
   outputOptions?: Array<any>
-  edit?: any
+  edit?: any,
+  promptClear: boolean
 }
 
 const highlight = keyframes`
@@ -122,9 +124,9 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
   importField: any
   constructor(props) {
     super(props)
-    this.state = { showAdd: false, cmds: [] }
+    this.state = { showAdd: false, cmds: [], promptClear: false }
     this.showAdd = this.showAdd.bind(this)
-    this.hideAdd = this.hideAdd.bind(this)
+    this.hideLayer = this.hideLayer.bind(this)
     this.addCommand = this.addCommand.bind(this)
     this.saveCommands = this.saveCommands.bind(this)
     this.loadCommands = this.loadCommands.bind(this)
@@ -135,14 +137,16 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.saveCommand = this.saveCommand.bind(this)
     this.export = this.export.bind(this)
     this.import = this.import.bind(this)
+    this.promptClear = this.promptClear.bind(this)
+    this.clearCommands = this.clearCommands.bind(this)
   }
 
   showAdd() {
     this.setState({ showAdd: true })
   }
 
-  hideAdd() {
-    this.setState({ showAdd: false })
+  hideLayer() {
+    this.setState({ showAdd: false, promptClear: false })
   }
 
   loadCommands(cmds?: Array<MatchedCommand>) {
@@ -167,23 +171,12 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     window.localStorage.setItem('cmds', JSON.stringify(cmds))
     this.setState({cmds: cmds})
   }
-
+  welcome() {
+    let [matched, matchedIx] = CommandMatcher(this.state.cmds, 'welcome')
+    if (matched.length > 0) return matched[0].output
+  }
   processInput(cmd) {
-    let matchedIx : Array<number>
-    matchedIx = []
-    let matched = this.state.cmds.filter((item, idx) => {
-      if (cmd.toString() === item.cmd) {
-        matchedIx.push(idx)
-        return true
-      } else if (item.cmd.match(/^\/.+\/([gimy]*)$/)) {
-        var match = item.cmd.match(new RegExp('^/(.*?)/([gimy]*)$'));
-        if (match && cmd.match(new RegExp(match[1], match[2]))) {
-          matchedIx.push(idx)
-          return true
-        }
-      }
-      return false
-    })
+    let [matched, matchedIx] = CommandMatcher(this.state.cmds, cmd)
     if (matched.length > 0) {
       let cmds = this.state.cmds
       matchedIx.forEach(idx => {
@@ -224,9 +217,14 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       newOutput: ''
     })
     this.saveCommands()
-    this.hideAdd()
+    this.hideLayer()
   }
-
+  clearCommands() {
+    this.setState({
+      cmds: [],
+      promptClear: false
+    }, () => { this.saveCommands() })
+  }
   editCommand(cmd) {
     let command = this.state.cmds.find(item => {
       if (cmd.id) {
@@ -317,10 +315,16 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
     this.props.admin.sendOutput(ev.target.textContent)
   }
 
+  promptClear() {
+    this.setState({
+      promptClear: true
+    })
+  }
+
   render() {
     return <Box gridArea={this.props.gridArea} fill={true} direction="column" overflow={{"vertical": "auto", "horizontal": "hidden"}}>
       {this.state.outputOptions && this.state.outputOptions.length > 0 && (
-        <Layer onEsc={this.hideAdd} full={true}>
+        <Layer full={true}>
           <Heading>Choose the correct output to send:</Heading>
           <Box pad="medium" overflow="auto">
             {this.state.outputOptions.map(opt => {
@@ -329,8 +333,16 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
           </Box>
        </Layer> 
       )}
+      {this.state.promptClear && (
+        <Layer onEsc={this.hideLayer} full={true}>
+          <Box pad="medium">
+            <Heading>Are you sure you want to clear all of the existing commands?</Heading> 
+            <Button label="Whoops, take me back" onClick={this.hideLayer} fill={false} margin="medium"/><Button primary label="Yes, clear them out" fill={false} margin="medium" onClick={this.clearCommands}/>
+          </Box>
+        </Layer>
+      )}
       {this.state.showAdd && (
-        <Layer onEsc={this.hideAdd} full={true}>
+        <Layer onEsc={this.hideLayer} full={true}>
           <Box pad="medium">
             <FormField label="Command to match">
               <NewCmd onChange={event => this.setState({newCmd: event.target.value})}/>
@@ -345,7 +357,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
         </Layer>
       )}
       {this.state.edit && (
-        <Layer onEsc={this.hideAdd} full={true}>
+        <Layer onEsc={this.hideLayer} full={true}>
          <Box pad="medium">
            <FormField label="Command to match">
              <NewCmd value={this.state.newCmd} onChange={event => this.setState({newCmd: event.target.value})}/>
@@ -377,6 +389,7 @@ class CommandPanel extends React.Component<PanelProps, PanelState> {
       </Box>
       <Footer pad="small" align="end" direction="row-reverse">
         <Button primary alignSelf="end" label="Add new command" onClick={this.showAdd}/>
+        <Button color="red" label="Clear all" onClick={this.promptClear}/>
         <UploadButton onUpload={this.import}/>
         <Button label="Export" onClick={this.export}/>
       </Footer>

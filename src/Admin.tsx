@@ -67,6 +67,13 @@ class Admin extends React.Component<{}, State> {
   }
   personConnected(member) {
     this.newOutput('🤝 Participant connected')
+    let welcome = this.commandPanel.welcome()
+    console.log(welcome)
+    if (welcome) {
+      setTimeout(() => {
+        this.sendOutput(welcome)
+      }, 2000)
+    }
   }
   getSessionPassword() {
     if (!window.localStorage.getItem('password')) {
@@ -139,11 +146,13 @@ class Admin extends React.Component<{}, State> {
             <LoginPrompt password={this.state.password} resetPassword={this.resetPassword}/>
           )}
           {this.state.history.map((item, idx) => {
+            let out
             if (item.type==='input') {
-              return <Command key={"cmd-"+idx}>{item.display}</Command>
+              out = <Command key={"cmd-"+idx}>{item.display}</Command>
             } else if (item.type==='output') {
-              return <CommandOutput key={"cmdout-"+idx}>{item.display}</CommandOutput>
+              out = <CommandOutput key={"cmdout-"+idx}>{item.display}</CommandOutput>
             }
+            return out
           })}
         </Window>
       </Box>
