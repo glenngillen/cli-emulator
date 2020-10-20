@@ -267,6 +267,7 @@ class Terminal extends React.Component<TermProps, State> {
     if (this.state.interactive) {
       this.state.client.command(message)
     } else {
+      if (this.state.inlineInput) return
       let self = this
       setTimeout(() => {
         let output : any
